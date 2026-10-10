@@ -20,3 +20,16 @@
 - 回傳錯誤碼：400 參數錯、500 沒設 key、502 BODS 出錯、504 BODS 逾時（網頁會顯示原因）。
 - 免費額度：Vercel Hobby 足夠個人網站；BODS 有速率限制，快取已降低請求。
 - 本機測試：`node test.js`（用模擬資料）。
+
+## 水浸代理（api/flood.js）— 新增
+
+瀏覽器直接查英國環境署（EA）的水浸風險服務，有時會因 CORS 或網絡被擋而顯示 "Failed to fetch"。`api/flood.js` 改由 Vercel 後端去查，網頁會先用它，失敗才退回瀏覽器直接查。
+
+1. 把 `api/flood.js` 放進 repo 的 `api/` 資料夾（和 `buses.js` 並排），Vercel 會自動重新部署。不需要新的環境變數（沿用 `ALLOWED_ORIGINS`）。
+2. 測試：開 `https://<專案>.vercel.app/api/flood?lat=51.2362&lng=-0.5704&debug=1`
+   - 成功：`{"ok":true,"band":"low",...}`（band 為 null 代表該點不在洪水風險區內，是正常結果）
+   - 失敗：回 502，內容會列出每個來源的 HTTP 狀態和回應片段。把這段貼給開發者，就能知道是服務改了網址、被封鎖還是逾時。
+3. 若 EA 服務網址日後改了，可在 Vercel 設定 `FLOOD_QUERY_URL`（ArcGIS 圖層的 `/query` 網址），重新部署即可，不用改程式。
+4. 結果會在 Vercel 邊緣快取 1 天，所以同一地點不會重複打 EA。
+
+網頁的「巴士」和「水浸」共用同一個 `NEST_BUS_API` 設定（程式會自動換成 `/api/flood`），不用另外設定。
