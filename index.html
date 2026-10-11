@@ -342,7 +342,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 
         <div class="row">
           <button class="btn" type="submit" id="go" data-i18n="go"></button>
-          <div class="ex"><span data-i18n="tryEx"></span><button type="button" id="ex1">GU1 2TN vs GU15 3SZ</button></div>
+          <div class="ex"><span data-i18n="tryEx"></span><button type="button" id="ex1">M13 9WL vs GU15 3SZ</button></div>
         </div>
         <p class="msg" id="msg" role="alert" hidden></p>
       </form>
@@ -799,7 +799,7 @@ const T = {
     brandSub:'UK area explorer',
     heroH:'Look up a place, learn more.',
     heroP:'Type any address or postcode in England, Wales or Northern Ireland. See where it is on the map, with the crime, flood risk, schools, stations, roads, shops and sport around it. Compare up to three places side by side.',
-    addrLabel:'Address or postcode', ph:'e.g. GU1 2TN or 10 High Street, Guildford', addMore:'+ Add another address',
+    addrLabel:'Address or postcode', ph:'e.g. M13 9WL or 10 High Street, Guildford', addMore:'+ Add another address',
     radiusLabel:'Crime area around the address', r300:'300 m · 4 min walk', r600:'600 m · 8 min walk', r1609:'1 mile',
     profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use transit',
     go:'Check these addresses', tryEx:'Try an example:',
@@ -895,7 +895,7 @@ const T = {
     brandSub:'英國安樂窩 · 地區透視',
     heroH:'查詢地點，可以了解更多。',
     heroP:'輸入英格蘭、威爾斯或北愛爾蘭任何地址或郵編，地圖會顯示它在英國的位置，並列出周邊的治安、水浸風險、學校、火車站、道路、商鋪食肆和運動設施。最多可並排比較三個地方。',
-    addrLabel:'地址或郵編', ph:'例如 GU1 2TN 或 10 High Street, Guildford', addMore:'+ 加多一個地址',
+    addrLabel:'地址或郵編', ph:'例如 M13 9WL 或 10 High Street, Guildford', addMore:'+ 加多一個地址',
     radiusLabel:'罪案統計範圍', r300:'300 米 · 步行約 4 分鐘', r600:'600 米 · 步行約 8 分鐘', r1609:'1 英里',
     profileLabel:'罪案分數側重', p_balanced:'平衡', p_driver:'我揸車', p_family:'一家大細', p_walker:'我多數行路或搭車',
     go:'開始分析', tryEx:'試用例子：',
@@ -2097,7 +2097,7 @@ function applyTheme(th){
     $('input', r).value = ''; r.hidden = true; $('#addMore').hidden = false;
   });
   $('#ex1').onclick = () => {
-    $('#q0').value = 'GU1 2TN'; $('#q1').value = 'GU15 3SZ';
+    $('#q0').value = 'M13 9WL'; $('#q1').value = 'GU15 3SZ';
     $('#row1').hidden = false;
   };
   $$('input[name=radius]').forEach(r => r.onchange = () => { state.radius = +r.value; if (!state.running && state.items.length) render(); });
