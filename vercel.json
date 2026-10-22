@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://nestuk.co.uk/$1",
+      "permanent": true
+    }
+  ]
+}
