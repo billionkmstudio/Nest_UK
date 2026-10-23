@@ -4,6 +4,7 @@
 //   /api/hpi    house prices (HM Land Registry UKHPI)
 //   /api/flood  flood-risk band (Environment Agency)
 //   /api/crime-last-updated, /api/crime  police.uk street crime, edge-cached
+//   /api/flood-warnings  live flood warnings (Environment Agency), edge-cached
 //   /api/overpass?kind=edu|extra|life|roads|bus  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
 
@@ -459,6 +460,29 @@ async function overpass(request, env, ctx, url) {
   return res || json({ error: 'upstream' }, 502);
 }
 
+/* Live flood warnings (Environment Agency flood-monitoring API). The browser often times out calling it directly,
+   so the Worker fetches it, caches 10 minutes, and keeps the last good answer for a day. */
+async function floodWarnings(request, env, ctx, url) {
+  const lat = snap(parseFloat(url.searchParams.get('lat'))), lng = snap(parseFloat(url.searchParams.get('lng')));
+  if (!isFinite(lat) || !isFinite(lng) || lat < 49.5 || lat > 55.9 || lng < -6.5 || lng > 2) return json({ error: 'bad lat/lng' }, 400);
+  const params = { lat, lng };
+  const res = await edgeCached(ctx, cacheKey('/fw', params), cacheKey('/fw-stale', params), 600, 86400, async () => {
+    for (let i = 0; i < 2; i++) {
+      try {
+        const r = await fetch('https://environment.data.gov.uk/flood-monitoring/id/floods?lat=' + lat + '&long=' + lng + '&dist=3', {
+          headers: { Accept: 'application/json', 'User-Agent': UA }, signal: AbortSignal.timeout(12000),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          return { items: ((j && j.items) || []).map(x => ({ severityLevel: x.severityLevel, severity: x.severity || '', description: x.description || '' })) };
+        }
+      } catch (e) { /* retry once */ }
+    }
+    return null;
+  });
+  return res || json({ error: 'upstream' }, 502);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -466,6 +490,7 @@ export default {
     if (url.pathname === '/api/hpi') return hpi(request, env, ctx, url);
     if (url.pathname === '/api/flood') return flood(request, env, ctx, url);
     if (url.pathname === '/api/crime-last-updated') return crimeLastUpdated(request, env, ctx);
+    if (url.pathname === '/api/flood-warnings') return floodWarnings(request, env, ctx, url);
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);

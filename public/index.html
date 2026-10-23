@@ -490,7 +490,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.18';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.19';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -1217,6 +1217,13 @@ async function loadFlood(item){
       }
     })(),
     (async () => {
+      const AB = apiBase();
+      if (AB !== null){   // Worker first: cached, and it does not time out the way the browser does
+        try{
+          const r = await fetchT(AB + '/api/flood-warnings?lat=' + item.geo.lat.toFixed(6) + '&lng=' + item.geo.lng.toFixed(6), null, 25000);
+          if (r.ok){ const j = await r.json(); if (Array.isArray(j.items)){ F.warnings = parseFloodWarnings(j); F.warnOk = true; return; } }
+        }catch(e){}
+      }
       try{
         const r = await fetchT(floodUrls(item.geo.lat, item.geo.lng).warn, null, 20000);
         if (r.ok){ F.warnings = parseFloodWarnings(await r.json()); F.warnOk = true; } else why.push('warnings: HTTP ' + r.status);
