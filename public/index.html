@@ -481,6 +481,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/gias.js"></script>
+<script src="/queries.js"></script>
 <script>
 /* 實時巴士：部署 Vercel 代理後，把網址貼在下面，例如 'https://你的專案.vercel.app/api/buses'。留空 = 不顯示實時巴士。 */
 window.NEST_BUS_API = '/api/buses';
@@ -489,7 +490,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.17';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.18';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -637,6 +638,7 @@ function parseFloodWarnings(j){
     .map(x => ({level:x.severityLevel, severity:x.severity || '', name:x.description || ''}))
     .sort((a, b) => a.level - b.level);
 }
+function apiBase(){ const b = (window.NEST_BUS_API || '').trim(); return b ? b.replace(/\/api\/buses.*$/, '') : null; }   /* '' = same origin; null = no Worker */
 function floodProxy(){ const b = (window.NEST_BUS_API || '').trim(); return b ? b.replace(/\/api\/buses.*$/, '/api/flood') : ''; }
 function floodUrls(lat, lng, layer, nodist){
   return {
@@ -647,39 +649,9 @@ function floodUrls(lat, lng, layer, nodist){
 }
 
 /* ---------- places (OpenStreetMap via Overpass) ---------- */
+const NestQueries = window.NestQueries;   /* query builders: public/queries.js, shared with the Worker */
 const ASIAN_RE = /oriental|asian|chinese|wing yip|hoo hing|wai yee hong|see woo|loon fung|hong kong/i;
 const CUISINE_RE = /chinese|cantonese|dim_sum|hong_kong|asian|taiwanese|sichuan|szechuan/i;
-function eduQuery(lat, lng){
-  const p = lat + ',' + lng;
-  return '[out:json][timeout:25];\n(\n' +
-    '  nwr["amenity"="school"](around:4800,' + p + ');\n' +
-    '  nwr["amenity"="kindergarten"](around:2400,' + p + ');\n' +
-    ');\nout center tags qt;';
-}
-function extraQuery(lat, lng){
-  const p = lat + ',' + lng;
-  return '[out:json][timeout:25];\n(\n' +
-    '  nwr["amenity"~"^(university|college)$"](around:8000,' + p + ');\n' +
-    '  nwr["railway"~"^(station|halt)$"](around:5000,' + p + ');\n' +
-    ');\nout center tags qt;';
-}
-function lifeQuery(lat, lng){
-  const p = lat + ',' + lng;
-  return '[out:json][timeout:30];\n' +
-    'way["highway"]["name"~"^High (Street|St)$",i](around:1500,' + p + ')->.hs;\n(\n' +
-    '  nwr["shop"="mall"](around:5000,' + p + ');\n' +
-    '  nwr["shop"="supermarket"](around:1600,' + p + ');\n' +
-    '  nwr["shop"~"^(supermarket|convenience|greengrocer|butcher|general|food|deli)$"]["name"~"oriental|asian|chinese|wing yip|hoo hing|wai yee hong|see woo|loon fung|hong kong",i](around:4000,' + p + ');\n' +
-    '  nwr["amenity"~"^(restaurant|cafe|pub|fast_food)$"](around:1500,' + p + ');\n' +
-    '  nwr["amenity"~"^(restaurant|fast_food)$"]["cuisine"~"chinese|cantonese|dim_sum|hong_kong|asian|taiwanese|sichuan|szechuan",i](around:3000,' + p + ');\n' +
-    '  nwr["leisure"~"^(sports_centre|fitness_centre)$"](around:3000,' + p + ');\n' +
-    '  nwr["leisure"="swimming_pool"]["access"~"^(yes|public)$"](around:3000,' + p + ');\n' +
-    ')->.pois;\n.pois out center tags;\n.hs out geom;\n' +
-    'nwr["shop"](around:500,' + p + ');\nout count;';
-}
-function roadsQuery(lat, lng){
-  return '[out:json][timeout:30];\nway["highway"~"^(motorway|trunk|primary)$"](around:3000,' + lat + ',' + lng + ');\nout geom;';
-}
 function minDistToLine(pts, geo){
   const kx = 111320 * Math.cos(geo.lat * Math.PI / 180), ky = 110574;
   const P = pts.map(p => [(p.lon - geo.lng) * kx, (p.lat - geo.lat) * ky]);
@@ -844,11 +816,6 @@ function summariseRoads(elements, geo){
     res.lines.forEach(l => { l.pts = l.pts.filter((p, i) => i % step === 0 || i === l.pts.length - 1); });
   }
   return res;
-}
-function busQuery(lat, lng){
-  const dy = 1500 / 110574, dx = 1500 / (111320 * Math.cos(lat * Math.PI / 180));
-  const bb = [lat - dy, lng - dx, lat + dy, lng + dx].map(v => v.toFixed(5)).join(',');
-  return '[out:json][timeout:30];\nnode["highway"="bus_stop"](around:800,' + lat + ',' + lng + ');\nout qt;\nrel["route"="bus"](around:1200,' + lat + ',' + lng + ');\nout geom(' + bb + ');';
 }
 function refKey(r){ const m = String(r).match(/^(\D*)(\d+)(.*)$/); return m ? [m[1], +m[2], m[3]] : [String(r), 0, '']; }
 function summariseBus(elements, geo){
@@ -1129,13 +1096,20 @@ async function pool(tasks, n){
 }
 async function getLatestMonth(){
   if (state.latest) return state.latest;
+  const AB = apiBase();
+  if (AB !== null){   // our Worker caches this and keeps the last good answer if police.uk is down
+    try{
+      const r = await fetchT(AB + '/api/crime-last-updated', null, 12000);
+      if (r.ok){ const j = await r.json(); if (/^\d{4}-\d{2}$/.test(j.month)){ if (!j.guess) state.latest = j.month; return j.month; } }
+    }catch(e){}
+  }
   try{
-    const r = await fetch('https://data.police.uk/api/crime-last-updated');
+    const r = await fetchT('https://data.police.uk/api/crime-last-updated', null, 12000);
     if (r.ok){ const j = await r.json(); state.latest = String(j.date).slice(0, 7); return state.latest; }
   }catch(e){}
-  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 2);
-  state.latest = d.toISOString().slice(0, 7);
-  return state.latest;
+  /* Both failed: police.uk normally lags about two months, so three back is the safe guess (not cached). */
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 3);
+  return d.toISOString().slice(0, 7);
 }
 async function geocode(q){
   const raw = q.trim().toUpperCase().replace(/\s+/g, ' ');
@@ -1174,6 +1148,13 @@ async function geocode(q){
 
 /* crime */
 async function fetchMonth(geo, month, capped){
+  const AB = apiBase();
+  if (AB !== null){   // Worker: edge-cached, and it handles police.uk's "too many crimes" 503 itself
+    try{
+      const r = await fetchT(AB + '/api/crime?lat=' + geo.lat.toFixed(6) + '&lng=' + geo.lng.toFixed(6) + '&date=' + month + (capped ? '&capped=1' : ''), null, 30000);
+      if (r.ok){ const j = await r.json(); if (Array.isArray(j.list)) return {list:j.list, over:false, capped:!!j.capped}; }
+    }catch(e){}
+  }
   const base = 'https://data.police.uk/api/crimes-street/all-crime';
   const q = capped ? 'poly=' + squarePoly(geo.lat, geo.lng, CAP_R) : 'lat=' + geo.lat + '&lng=' + geo.lng;
   const r = await getJSON(base + '?' + q + '&date=' + month);
@@ -1190,6 +1171,7 @@ async function loadCrimes(item){
   async function one(m){
     try{
       let r = await fetchMonth(item.geo, m, C.capped);
+      if (r.capped) C.capped = true;
       if (r.over){ C.capped = true; r = await fetchMonth(item.geo, m, true); }
       C.raw[m] = r.list;
     }catch(e){ C.raw[m] = null; C.failed++; }
@@ -1283,10 +1265,23 @@ async function overpass(q){
   }
   throw new Error(errs.join(' | '));
 }
+/* Worker first (edge-cached, shared by all visitors); the old direct-to-Overpass path is the fallback. */
+async function overpassKind(kind, lat, lng){
+  const AB = apiBase();
+  if (AB !== null){
+    const ck = 'nest-ov1:w:' + kind + ':' + lat.toFixed(4) + ',' + lng.toFixed(4), hit = ovCacheGet(ck);
+    if (hit) return hit;
+    try{
+      const r = await fetchT(AB + '/api/overpass?kind=' + kind + '&lat=' + lat.toFixed(6) + '&lng=' + lng.toFixed(6), null, 40000);
+      if (r.ok){ const j = await r.json(); if (Array.isArray(j.elements)){ ovCachePut(ck, j.elements); return j.elements; } }
+    }catch(e){}
+  }
+  return overpass(NestQueries[kind](lat, lng));
+}
 async function loadPlaces(item){
   const g = item.geo;
   const giasP = loadGias();   // DfE school types; never blocks or fails the search
-  const rs = await Promise.allSettled([eduQuery, extraQuery, lifeQuery].map(f => ovRun(() => overpass(f(g.lat, g.lng)))));
+  const rs = await Promise.allSettled(['edu', 'extra', 'life'].map(k => ovRun(() => overpassKind(k, g.lat, g.lng))));
   await giasP;
   if (rs.every(x => x.status !== 'fulfilled')) throw new Error(errMsg(rs[0].reason));
   const data = summarisePlaces([].concat(...rs.map(x => x.status === 'fulfilled' ? x.value : [])), g);
@@ -1295,11 +1290,11 @@ async function loadPlaces(item){
   item.errs.places = rs.filter(x => x.status !== 'fulfilled').map(x => errMsg(x.reason)).join(' || ');
 }
 async function loadBus(item){
-  const els = await ovRun(() => overpass(busQuery(item.geo.lat, item.geo.lng)));
+  const els = await ovRun(() => overpassKind('bus', item.geo.lat, item.geo.lng));
   item.bus = {data:summariseBus(els, item.geo)};
 }
 async function loadRoads(item){
-  const els = await ovRun(() => overpass(roadsQuery(item.geo.lat, item.geo.lng)));
+  const els = await ovRun(() => overpassKind('roads', item.geo.lat, item.geo.lng));
   item.roads = {data:summariseRoads(els, item.geo)};
 }
 async function runModule(it, mod){
