@@ -210,9 +210,13 @@ input[type=text],select{width:100%;height:46px;border:1px solid var(--line);bord
 .st+.st{margin-top:12px}
 .st p{margin:0;font-size:14px;overflow-wrap:anywhere}
 .st .mods{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;color:var(--muted);font-size:13px}
-.st .mods .ok{color:var(--good)} .st .mods .err{color:var(--bad)}
-.st .track{height:6px;background:var(--surface-2);border-radius:9px;margin-top:8px;overflow:hidden}
-.st .track i{display:block;height:100%;background:var(--accent);width:0}
+.st .mods .ok{color:var(--good)} .st .mods .err{color:var(--bad)} .st .mods .run{color:var(--ink);font-weight:600}
+/* progress bar: thick, bordered, amber with moving stripes while loading, solid green when finished */
+.st .track{height:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;margin-top:8px;overflow:hidden}
+.st .track i{display:block;height:100%;width:0;border-radius:9px;background-color:var(--warn);background-image:linear-gradient(45deg,rgba(255,255,255,.4) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.4) 50%,rgba(255,255,255,.4) 75%,transparent 75%);background-size:20px 20px;animation:stripe 1s linear infinite}
+.st .track.done i{background-color:var(--good);background-image:none;animation:none}
+@keyframes stripe{to{background-position:20px 0}}
+@media (prefers-reduced-motion:reduce){.st .track i{animation:none}}
 
 /* topic tabs */
 .topics{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
@@ -485,7 +489,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.15';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.16';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -910,7 +914,7 @@ const T = {
     errGeo:'The address lookup service did not respond. Try again in a moment.',
     unavailable:'Could not load this data.', retry:'Try again', naShort:'n/a', none:'None',
     cmpTitle:'At a glance', cmpOverall:'Overall crime risk score (0–100, lower = fewer reports)', cmpTotal:'Reported crimes a year', cmpTrend:'Recent trend', cmpTop:'Most common', best:'best', metric:'Measure',
-    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Fetching data… {s}s. This usually takes 10–40 seconds because the public map servers can be slow. Results appear as each part arrives, so please wait.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
+    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Fetching data… {s}s. This can take up to a minute or longer because the public map servers can be slow. Results appear as each part arrives, so please wait.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
     within:'within {r}', mWithin:'{r} m', mile:'1 mile',
     headline:'{total} reported crimes a year within {r}. Most common: {cat} ({pct}%). Highest risk area: {grp} ({score}).',
     perYear:'{n} {u} a year',
@@ -1009,7 +1013,7 @@ const T = {
     errGeo:'地址查詢服務沒有回應，請稍後再試。',
     unavailable:'載入不到這項資料。', retry:'再試一次', naShort:'不適用', none:'沒有',
     cmpTitle:'一覽', cmpOverall:'罪案整體風險分數（0–100，越低代表罪案率越低）', cmpTotal:'每年罪案數目', cmpTrend:'近期趨勢', cmpTop:'最常見', best:'最佳', metric:'項目',
-    risk:'{b}風險', b0:'極低', b1:'低', b2:'中等', b3:'高', b4:'極高', btn_layers:'圖層', fl_gov:'到 GOV.UK 查詢 ↗', fl_gov_note:'長期水浸風險暫不在此顯示，請到英國政府官方水浸查詢網站查看這個地址。', side_hide:'收起側欄', side_show:'展開側欄', st_wait:'正在查詢資料…（{s} 秒）。公開地圖伺服器有時較慢，通常需要 10–40 秒。每部分資料一到就會顯示出來，請稍候，不是死機。', scoreHint:'分數滿分 100，數字越低，代表報案率（罪案率）越低。', base_map:'地圖', base_sat:'衛星', theme_to_dark:'切換夜間模式', theme_to_light:'切換日間模式', sat_credit:'影像 © Esri、Maxar、Earthstar Geographics', rl0:'風險極低', rl1:'風險低', rl2:'風險中等', rl3:'報案偏多', rl4:'報案較多', crimeCtx:'分數是根據該區警方的報案數字計算。鬧市和市中心人多、商店多、夜生活多，報案數字幾乎必然較高，不代表一般住宅街道的日常生活就不安全。', mapFoot:'地圖資料來自 OpenStreetMap 義工，新建屋苑可能還未顯示樓宇或商店。',
+    risk:'{b}風險', b0:'極低', b1:'低', b2:'中等', b3:'高', b4:'極高', btn_layers:'圖層', fl_gov:'到 GOV.UK 查詢 ↗', fl_gov_note:'長期水浸風險暫不在此顯示，請到英國政府官方水浸查詢網站查看這個地址。', side_hide:'收起側欄', side_show:'展開側欄', st_wait:'正在查詢資料…（{s} 秒）。公開地圖伺服器有時較慢，最長可能需要一分鐘或以上。每部分資料一到就會顯示出來，請稍候，不是死機。', scoreHint:'分數滿分 100，數字越低，代表報案率（罪案率）越低。', base_map:'地圖', base_sat:'衛星', theme_to_dark:'切換夜間模式', theme_to_light:'切換日間模式', sat_credit:'影像 © Esri、Maxar、Earthstar Geographics', rl0:'風險極低', rl1:'風險低', rl2:'風險中等', rl3:'報案偏多', rl4:'報案較多', crimeCtx:'分數是根據該區警方的報案數字計算。鬧市和市中心人多、商店多、夜生活多，報案數字幾乎必然較高，不代表一般住宅街道的日常生活就不安全。', mapFoot:'地圖資料來自 OpenStreetMap 義工，新建屋苑可能還未顯示樓宇或商店。',
     within:'{r}範圍內', mWithin:'{r} 米', mile:'1 英里',
     headline:'{r}每年有 {total} 宗已報案罪案。最常見：{cat}（{pct}%）。風險最高的範疇：{grp}（{score}）。',
     perYear:'每年 {n} {u}',
@@ -1389,10 +1393,16 @@ function renderStatus(){
       const s = it.mod[m];
       let sym = s === 'ok' ? '✓' : s === 'err' ? '✕' : s === 'na' ? '–' : '…';
       if (m === 'crime' && s === 'run' && it.crime) sym = it.crime.done + '/' + it.crime.total;
-      return '<span class="' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : '') + '">' + esc(t(names[m])) + ' ' + sym + '</span>';
+      return '<span class="' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : s === 'run' ? 'run' : '') + '">' + esc(t(names[m])) + ' ' + sym + '</span>';
     }).join('');
     const finished = MODS.filter(m => it.mod[m] !== 'run').length;
-    return '<div class="st"><span class="chip ' + IDCLS[it.i] + '">' + LETTERS[it.i] + '</span><div><p><b>' + esc(it.geo.label) + '</b></p><div class="mods">' + mods + '</div><div class="track"><i style="width:' + Math.round(finished / MODS.length * 100) + '%"></i></div></div></div>';
+    /* crime reports month-by-month progress, so the bar moves smoothly while it runs; never show less than 5% */
+    const frac = it.mod.crime === 'run' && it.crime && it.crime.total ? it.crime.done / it.crime.total : 0;
+    const pct = Math.min(100, Math.max(5, Math.round((finished + frac) / MODS.length * 100)));
+    const done = finished === MODS.length;
+    /* the stripe animation restarts on every re-render; a negative delay keeps its phase so it does not jump */
+    const phase = -((Date.now() % 1000) / 1000).toFixed(2);
+    return '<div class="st"><span class="chip ' + IDCLS[it.i] + '">' + LETTERS[it.i] + '</span><div><p><b>' + esc(it.geo.label) + '</b></p><div class="mods">' + mods + '</div><div class="track' + (done ? ' done' : '') + '" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + (done ? 100 : pct) + '"><i style="width:' + (done ? 100 : pct) + '%;animation-delay:' + phase + 's"></i></div></div></div>';
   }).join('');
 }
 
