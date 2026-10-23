@@ -1,0 +1,50 @@
+name: Update GIAS school data
+
+# Rebuilds public/data/schools.json (school types from the DfE "Get Information about Schools" service)
+# on the 3rd of every month, and on demand from the Actions tab.
+on:
+  schedule:
+    - cron: '17 5 3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download the latest GIAS all-establishment file
+        run: |
+          # The file is published with a date in its name; try today and then back up to two weeks.
+          for i in $(seq 0 14); do
+            d=$(date -u -d "-$i day" +%Y%m%d)
+            url="https://ea-edubase-api-prod.azurewebsites.net/edubase/downloads/public/edubasealldata${d}.csv"
+            if curl -fsSL --retry 2 -o gias.csv "$url"; then echo "Downloaded $url"; break; fi
+            rm -f gias.csv
+          done
+          test -s gias.csv || { echo "Could not download a GIAS file. Download it manually from https://get-information-schools.service.gov.uk/Downloads and run: node scripts/build-gias.mjs <file>"; exit 1; }
+
+      - name: Build the school lookup
+        run: node scripts/build-gias.mjs gias.csv
+
+      - name: Test
+        run: node scripts/test-gias.mjs
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- public/data/schools.json; then
+            echo "No change in school data."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add public/data/schools.json
+            git commit -m "Update GIAS school data"
+            git push
+          fi

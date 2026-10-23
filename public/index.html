@@ -476,6 +476,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/gias.js"></script>
 <script>
 /* 實時巴士：部署 Vercel 代理後，把網址貼在下面，例如 'https://你的專案.vercel.app/api/buses'。留空 = 不顯示實時巴士。 */
 window.NEST_BUS_API = '/api/buses';
@@ -484,8 +485,8 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.14';   // 每次更新網頁時改這個版本號，會顯示在頁尾
-window.NEST_BUILD = '2026-10-13';
+window.NEST_VERSION = '1.0.15';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
 /*CORE:START*/
@@ -688,7 +689,37 @@ function minDistToLine(pts, geo){
   return best;
 }
 const STATE_OVERRIDE = ["st peter's catholic school", 'st peter\'s catholic school'.replace(/'/g, '\u2019')];
-function classifySchool(t){
+/* School type: DfE "Get Information about Schools" (GIAS) is the source of truth, matched to the OpenStreetMap school
+   by URN tag or by name + place (public/gias.js). The OSM tag/name guess below is only a fallback when GIAS data
+   is unavailable, and when GIAS is loaded but no match is found the school is shown as "type unconfirmed". */
+const GIAS = {index:null, tried:false, p:null};
+function loadGias(){
+  if (GIAS.p) return GIAS.p;
+  GIAS.p = (async () => {
+    try{
+      if (!window.NestGias) return;
+      const r = await fetch('/data/schools.json');
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j && j.v === 1 && Array.isArray(j.rows) && j.rows.length > 1000){ GIAS.index = NestGias.buildIndex(j.rows); GIAS.built = j.built; }
+    }catch(e){}
+    GIAS.tried = true;
+  })();
+  return GIAS.p;
+}
+function classifySchool(t, c){
+  const h = heuristicSchool(t);
+  if (!GIAS.index) return Object.assign(h, {src:'osm'});
+  const g = c ? NestGias.match(GIAS.index, t, c.lat, c.lon) : null;
+  if (g){
+    const special = g.cls === 'P';
+    return {phase:special ? 'special' : (g.phase !== 'unknown' ? g.phase : (h.phase === 'nursery' ? 'unknown' : h.phase)), indep:g.cls === 'I', faith:g.faith, urn:g.urn, src:'gias'};
+  }
+  /* no GIAS record found: a "private" guess from OSM tags or the name is not trusted, so it is listed as unconfirmed;
+     everything else keeps its OSM reading */
+  return {phase:h.phase, indep:false, unconf:h.indep && h.phase !== 'nursery', faith:h.faith, src:'osm'};
+}
+function heuristicSchool(t){
   const name = t.name || '';
   const isced = String(t['isced:level'] || '');
   const P = /primary|infant|junior|first school|village school/i;
@@ -745,7 +776,7 @@ function summarisePlaces(elements, geo){
     const d = haversine(geo.lat, geo.lng, c.lat, c.lon);
     const base = {name:t.name || '', d, la:c.lat, ln:c.lon};
     if (t.amenity === 'school' || t.amenity === 'kindergarten'){
-      out.schools.push(Object.assign(base, classifySchool(t)));
+      out.schools.push(Object.assign(base, classifySchool(t, c)));
     } else if (t.amenity === 'university' || t.amenity === 'college'){
       out.higher.push(Object.assign(base, {kind:t.amenity}));
     } else if (t.shop === 'mall'){
@@ -768,12 +799,13 @@ function summarisePlaces(elements, geo){
 }
 function placeDigest(P){
   const byD = (a, b) => a.d - b.d;
-  const stateSchools = P.schools.filter(s => !s.indep);
+  const stateSchools = P.schools.filter(s => !s.indep && !s.unconf);
   const prim = stateSchools.filter(s => s.phase === 'primary' || s.phase === 'allthrough').sort(byD);
   const sec = stateSchools.filter(s => s.phase === 'secondary' || s.phase === 'allthrough').sort(byD);
   const nurs = P.schools.filter(s => s.phase === 'nursery').sort(byD);
   const indep = P.schools.filter(s => s.indep && s.phase !== 'nursery').sort(byD);
   const other = stateSchools.filter(s => s.phase === 'unknown').sort(byD);
+  const unconf = P.schools.filter(s => s.unconf).sort(byD);   // OSM suggested "private" but DfE has no matching record
   const food800 = P.food.filter(f => f.d <= 800);
   const cnt = ty => food800.filter(f => f.type === ty).length;
   const food500 = P.food.filter(f => f.d <= 500).length;
@@ -781,7 +813,7 @@ function placeDigest(P){
   const asianFood = P.food.filter(f => f.chinese).sort(byD);
   const asianShops = P.supers.filter(s => s.asian).sort(byD);
   return {
-    prim, sec, nurs, indep, other, higher:P.higher.slice().sort(byD),
+    prim, sec, nurs, indep, other, unconf, higher:P.higher.slice().sort(byD),
     prim1:prim.filter(s => s.d <= MI).length, sec3:sec.filter(s => s.d <= 3 * MI).length,
     supers:P.supers.slice().sort(byD), malls:P.malls.slice().sort(byD),
     sports:P.sports.slice().sort(byD), stations:P.stations.slice().sort(byD),
@@ -908,11 +940,11 @@ const T = {
     fl_btn:'Open the GOV.UK flood risk check',
     /* schools */
     sc_prim1:'Primary schools within 1 mile', sc_primNear:'Nearest primary', sc_sec3:'Secondary schools within 3 miles', sc_secNear:'Nearest secondary',
-    sc_stateOnly:'State schools only (hide independent / private schools)', sc_listPrim:'Nearest primary schools', sc_listSec:'Nearest secondary schools', sc_listNurs:'Nursery and early years', sc_listUni:'Universities and colleges', sc_nursNear:'Nearest nursery', sc_uniNear:'Nearest university or college', sc_listInd:'Independent schools', sc_listOther:'Other schools (phase not tagged)',
+    sc_stateOnly:'State schools only (hide independent / private schools)', sc_listPrim:'Nearest primary schools', sc_listSec:'Nearest secondary schools', sc_listNurs:'Nursery and early years', sc_listUni:'Universities and colleges', sc_nursNear:'Nearest nursery', sc_uniNear:'Nearest university or college', sc_listInd:'Independent schools', sc_listOther:'Other schools (phase not tagged)', sc_listUnconf:'Possibly independent (type not confirmed by the DfE)', sc_gias:'DfE', sc_gias_t:'Open this school’s record on Get Information about Schools (DfE)',
     sc_none:'None found in this range.', sc_faith:'Faith', walk:'~{n} min walk',
     sc_note1:'Distances are in a straight line. Walking time assumes about 80 m a minute and a route 30% longer than the straight line. State school counts exclude independent schools.',
     sc_note2:'Living close does not guarantee a place. Councils decide admission using catchment or priority areas and each school’s oversubscription rules, and these change every year. Check the council admissions page, and ask for the furthest distance offered last year.',
-    sc_note3:'School data comes from OpenStreetMap and may be incomplete. School phase is read from tags and names. Ratings are not shown here: open each school’s Ofsted page from its name. Ofsted and the GOV.UK links cover England.',
+    sc_note3:'School locations come from OpenStreetMap and may be incomplete. Where a school matches a record in the Department for Education’s Get Information about Schools (GIAS), its type (state, independent, special) comes from GIAS; otherwise the phase is read from tags and names. Ratings are not shown here: open each school’s Ofsted page from its name. Ofsted and the GOV.UK links cover England.',
     sc_l1:'Apply for a primary place', sc_l2:'Apply for a secondary place', sc_l3:'Compare school performance',
     /* life */
     lf_super:'Nearest supermarket', lf_mall:'Nearest shopping centre', lf_hs:'Nearest High Street', lf_food:'Food and drink within 800 m',
@@ -950,7 +982,7 @@ const T = {
     how:'<p>Each of the four crime areas below is the number of reported crimes per square kilometre per year, placed on a log scale. 0 means at or below the low anchor, 100 means at or above the high anchor.</p><ul>{rows}</ul><p>The overall crime score is a weighted average of the four, using the weights for the option you chose. The anchors are fixed values chosen for this tool, not an official ranking, so the score is best used to compare addresses with each other.</p><p>Only reported crime is counted. Months with unusually few records are left out as probable data gaps. Flood, schools, shops, sport and roads are shown as facts and distances, not scored.</p>',
     howRow:'{g}: 0 at {lo}, 100 at {hi} per km² per year',
     disclaimer:'Important: the crime risk score is an experimental indicator based on publicly available police.uk data. Crime, flood and map data may be incomplete or delayed, a lower score does not guarantee safety, and nothing here is advice on whether to rent or buy. Always visit the area yourself.',
-    attrib:'Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Postcodes: postcodes.io. Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.'
+    attrib:'Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.'
   },
   zh:{
     brandSub:'英國安樂窩 · 地區透視',
@@ -1005,11 +1037,11 @@ const T = {
     fl_src:'資料來源：環境署「河流及海水水浸風險」和水浸警告數據。風險級別取該位置或 25 米內最高的一級。',
     fl_btn:'打開 GOV.UK 水浸風險查詢',
     sc_prim1:'1 英里內的小學', sc_primNear:'最近的小學', sc_sec3:'3 英里內的中學', sc_secNear:'最近的中學',
-    sc_stateOnly:'只看公立學校（隱藏私立學校）', sc_listPrim:'最近的小學', sc_listSec:'最近的中學', sc_listNurs:'幼稚園及學前班', sc_listUni:'大學及學院', sc_nursNear:'最近的幼稚園', sc_uniNear:'最近的大學或學院', sc_listInd:'私立學校', sc_listOther:'其他學校（未標明小學或中學）',
+    sc_stateOnly:'只看公立學校（隱藏私立學校）', sc_listPrim:'最近的小學', sc_listSec:'最近的中學', sc_listNurs:'幼稚園及學前班', sc_listUni:'大學及學院', sc_nursNear:'最近的幼稚園', sc_uniNear:'最近的大學或學院', sc_listInd:'私立學校', sc_listOther:'其他學校（未標明小學或中學）', sc_listUnconf:'可能是私立（教育部資料未能確認類型）', sc_gias:'教育部', sc_gias_t:'在英國教育部 Get Information about Schools 查看這間學校的紀錄',
     sc_none:'這個範圍內搵唔到。', sc_faith:'宗教學校', walk:'步行約 {n} 分鐘',
     sc_note1:'距離是直線距離。步行時間以每分鐘約 80 米、實際路程比直線長 30% 估算。公立學校數目不包括私立學校。',
     sc_note2:'住得近不等於一定有學位。議會會按學區或優先區域，以及每間學校的超額申請準則派位，而且每年都可能改變。請查閱議會的入學網頁，並查詢去年派位的最遠距離。',
-    sc_note3:'學校資料來自 OpenStreetMap，可能不完整，小學或中學是按標籤和校名判斷。這裡不顯示評級，請按校名打開該校的 Ofsted 頁面。Ofsted 和 GOV.UK 連結只適用於英格蘭。',
+    sc_note3:'學校位置來自 OpenStreetMap，可能不完整。學校若能對應到英國教育部 Get Information about Schools（GIAS）的紀錄，公立、私立或特殊學校的類型就以 GIAS 為準；否則小學或中學是按標籤和校名判斷。這裡不顯示評級，請按校名打開該校的 Ofsted 頁面。Ofsted 和 GOV.UK 連結只適用於英格蘭。',
     sc_l1:'申請小學學位', sc_l2:'申請中學學位', sc_l3:'比較學校成績',
     lf_super:'最近的超級市場', lf_mall:'最近的購物中心', lf_hs:'最近的 High Street', lf_food:'800 米內的食肆',
     lf_chinese:'最近的中式或亞洲食肆', lf_sport:'最近的運動或康樂中心', lf_station:'最近的火車站',
@@ -1044,7 +1076,7 @@ const T = {
     how:'<p>下面四個罪案範疇，都是以「每平方公里每年的已報案罪案數目」按對數刻度換算。0 代表等於或低於下限，100 代表等於或高於上限。</p><ul>{rows}</ul><p>罪案整體分數是四個範疇的加權平均，權重按你選擇的側重而定。上下限是為本工具設定的固定數值，並非官方排名，最適合用來比較不同地址。</p><p>只計算已報案的罪案。紀錄異常地少的月份會視為數據缺漏而剔除。水浸、學校、商鋪、運動和道路只列出事實和距離，不計分。</p>',
     howRow:'{g}：每平方公里每年 {lo} 宗為 0 分，{hi} 宗為 100 分',
     disclaimer:'重要提示：罪案風險分數是根據 police.uk 公開數據得出的實驗性指標。罪案、水浸和地圖數據可能不完整或有延遲，分數較低不代表安全，本頁內容亦不構成租樓或買樓建議。請一定親身到當區看看。',
-    attrib:'罪案：police.uk（Open Government Licence v3.0）。水浸：環境署（Open Government Licence）。郵編：postcodes.io。學校、商鋪、食肆、運動、火車站、道路、地址及地圖：© OpenStreetMap contributors。'
+    attrib:'罪案：police.uk（Open Government Licence v3.0）。水浸：環境署（Open Government Licence）。郵編：postcodes.io。學校類型：英國教育部 Get Information about Schools（Open Government Licence v3.0）。學校、商鋪、食肆、運動、火車站、道路、地址及地圖：© OpenStreetMap contributors。'
   }
 };
 
@@ -1249,7 +1281,9 @@ async function overpass(q){
 }
 async function loadPlaces(item){
   const g = item.geo;
+  const giasP = loadGias();   // DfE school types; never blocks or fails the search
   const rs = await Promise.allSettled([eduQuery, extraQuery, lifeQuery].map(f => ovRun(() => overpass(f(g.lat, g.lng)))));
+  await giasP;
   if (rs.every(x => x.status !== 'fulfilled')) throw new Error(errMsg(rs[0].reason));
   const data = summarisePlaces([].concat(...rs.map(x => x.status === 'fulfilled' ? x.value : [])), g);
   data.eduOk = rs[0].status === 'fulfilled'; data.extraOk = rs[1].status === 'fulfilled'; data.lifeOk = rs[2].status === 'fulfilled';
@@ -1569,7 +1603,8 @@ function waterBlock(item){
 function schoolRow(s){
   const nm = s.name || t('nm_unnamed');
   const link = s.name ? '<a href="https://reports.ofsted.gov.uk/search?q=' + encodeURIComponent(s.name) + '" target="_blank" rel="noopener">' + esc(nm) + '</a>' : esc(nm);
-  return '<li><span class="nm">' + link + (s.faith ? '<span class="badge">' + esc(t('sc_faith')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(s.d)) + '</span></li>';
+  const dfe = s.urn && window.NestGias ? ' <a class="badge" href="' + NestGias.detailsUrl(s.urn) + '" target="_blank" rel="noopener" title="' + esc(t('sc_gias_t')) + '">' + esc(t('sc_gias')) + '</a>' : '';
+  return '<li><span class="nm">' + link + (s.faith ? '<span class="badge">' + esc(t('sc_faith')) + '</span>' : '') + dfe + '</span><span class="dd">' + esc(distLine(s.d)) + '</span></li>';
 }
 function higherRow(s){
   const nm = s.name || (s.kind === 'university' ? t('nm_uni') : t('nm_college'));
@@ -1594,6 +1629,7 @@ function schoolsHTML(d){
     '<div class="cols">' + listBlock(t('sc_listPrim'), p.prim, schoolRow, 5) + listBlock(t('sc_listSec'), p.sec, schoolRow, 5) + '</div>' +
     '<div class="cols">' + listBlock(t('sc_listNurs'), p.nurs, schoolRow, 5) + (p.extraOk ? listBlock(t('sc_listUni'), p.higher, higherRow, 5) : '<div><h3 class="sec">' + esc(t('sc_listUni')) + '</h3><p class="dir">' + esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':places">' + esc(t('retry')) + '</button></p></div>') + '</div>' +
     '<div class="cols">' + (state.stateOnly ? '' : listBlock(t('sc_listInd'), p.indep, schoolRow, 3)) + (p.other.length ? listBlock(t('sc_listOther'), p.other, schoolRow, 3) : '') + '</div>' +
+    (p.unconf.length ? '<div class="cols">' + listBlock(t('sc_listUnconf'), p.unconf, schoolRow, 3) + '</div>' : '') +
     '<ul class="notes"><li>' + esc(t('sc_note1')) + '</li><li>' + esc(t('sc_note2')) + '</li><li>' + esc(t('sc_note3')) + '</li></ul>' +
     '<div class="btnrow"><a href="https://www.gov.uk/apply-for-primary-school-place" target="_blank" rel="noopener">' + esc(t('sc_l1')) + '</a><a href="https://www.gov.uk/apply-for-secondary-school-place" target="_blank" rel="noopener">' + esc(t('sc_l2')) + '</a><a href="https://www.gov.uk/school-performance-tables" target="_blank" rel="noopener">' + esc(t('sc_l3')) + '</a></div></article>';
 }
