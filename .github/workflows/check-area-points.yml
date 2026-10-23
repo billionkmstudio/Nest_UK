@@ -1,0 +1,20 @@
+name: Check area page town points
+
+# Manual only. Compares the town points in scripts/areas.json with OpenStreetMap place outlines and writes a table
+# (and suggested coordinates) to the run summary. It changes nothing.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Compare points
+        run: |
+          node scripts/check-area-points.mjs --json | tee report.txt
+          { echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

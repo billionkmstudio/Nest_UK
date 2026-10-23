@@ -70,9 +70,10 @@ function crimeSentence(t, D) {
   if (t.indexable) {
     const r = t.rank, n = D.count;
     if (r <= Math.ceil(n * 0.25)) parts.push('That is the ' + ordinal(r) + ' lowest of the ' + n + ' ' + D.countyName + ' towns compared, so it sits in the quieter quarter.');
-    else if (r > n - Math.ceil(n * 0.25)) parts.push('That is the ' + ordinal(n - r + 1) + ' highest of the ' + n + ' ' + D.countyName + ' towns compared, so it sits in the busier quarter.');
+    else if (r > n - Math.ceil(n * 0.25)) parts.push('That is the ' + ordinal(n - r + 1) + ' highest of the ' + n + ' ' + D.countyName + ' towns compared, so it sits in the busier quarter. Busy town centres record more crime because more people pass through, so this says little about the quieter residential streets around them.');
     else parts.push('That puts it ' + ordinal(r) + ' of ' + n + ' ' + D.countyName + ' towns, from lowest to highest.');
-    if (t.vsMedian !== null && Math.abs(t.vsMedian) >= 5) parts.push('It is ' + Math.abs(t.vsMedian) + '% ' + (t.vsMedian < 0 ? 'below' : 'above') + ' the median town.');
+    if (t.vsMedian !== null && t.vsMedian > 100) parts.push('That is well above the median town, as larger town centres with shops and stations usually are.');
+    else if (t.vsMedian !== null && Math.abs(t.vsMedian) >= 5) parts.push('It is ' + Math.abs(t.vsMedian) + '% ' + (t.vsMedian < 0 ? 'below' : 'above') + ' the median town.');
     else if (t.vsMedian !== null) parts.push('It is close to the median town.');
   }
   if (t.trend !== null && Math.abs(t.trend) >= 5) parts.push('The most recent months were ' + Math.abs(t.trend) + '% ' + (t.trend < 0 ? 'lower' : 'higher') + ' than the months before.');

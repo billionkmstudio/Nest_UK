@@ -482,6 +482,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/gias.js"></script>
 <script src="/queries.js"></script>
+<script src="/place.js"></script>
 <script>
 /* 實時巴士：部署 Vercel 代理後，把網址貼在下面，例如 'https://你的專案.vercel.app/api/buses'。留空 = 不顯示實時巴士。 */
 window.NEST_BUS_API = '/api/buses';
@@ -490,7 +491,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.20';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.21';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -865,6 +866,7 @@ const T = {
     profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use transit',
     go:'Check these addresses', tryEx:'Try an example:', editSearch:'Edit search',
     needAddr:'Enter at least one address or postcode.',
+    placeHint:'Place-name search: results are centred on the middle of this area. For exact answers, search a street address or postcode.',
     g_safety:'Safety', g_safety_d:'12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.',
     g_flood:'Flood risk', g_flood_d:'Environment Agency river and sea risk, plus live flood warnings (England).',
     g_schools:'Schools', g_schools_d:'Nursery, primary, secondary and university nearby, each school with an Ofsted link.',
@@ -964,6 +966,7 @@ const T = {
     profileLabel:'罪案分數側重', p_balanced:'平衡', p_driver:'我揸車', p_family:'一家大細', p_walker:'我多數行路或搭車',
     go:'開始分析', tryEx:'試用例子：', editSearch:'修改搜尋',
     needAddr:'請至少輸入一個地址或郵編。',
+    placeHint:'地名搜尋：結果以該區中心計算。要更準確，請輸入街道地址或郵編。',
     g_safety:'治安', g_safety_d:'最近 12 個月的已報案罪案，按爆竊、車輛、人身安全和滋擾評分。',
     g_flood:'水浸風險', g_flood_d:'環境署的河流及海水水浸風險，加上即時水浸警告（只限英格蘭）。',
     g_schools:'學校', g_schools_d:'附近的幼稚園、小學、中學和大學，每間學校都附 Ofsted 連結。',
@@ -1111,6 +1114,7 @@ async function getLatestMonth(){
   const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 3);
   return d.toISOString().slice(0, 7);
 }
+const placeArea = NestPlace.placeArea;   /* public/place.js: a place name is an area, not a point */
 async function geocode(q){
   const raw = q.trim().toUpperCase().replace(/\s+/g, ' ');
   const isPostcode = /^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/.test(raw);
@@ -1126,11 +1130,11 @@ async function geocode(q){
     const place = isPostcode ? (j.admin_district || j.region || '') : ((j.admin_district || []).join(', '));
     const council = isPostcode ? [j.admin_district, j.admin_county].filter(Boolean).join(', ') : ((j.admin_district || []).join(', '));
     const district = isPostcode ? (j.admin_district || '') : ((j.admin_district || []).length === 1 ? j.admin_district[0] : '');
-    return {lat:j.latitude, lng:j.longitude, label:isPostcode ? j.postcode : raw, place, council, district, country:countries.length === 1 ? (countries[0] || '') : ''};
+    return {lat:j.latitude, lng:j.longitude, label:isPostcode ? j.postcode : raw, place, council, district, placeSearch:!isPostcode, country:countries.length === 1 ? (countries[0] || '') : ''};
   }
   let r;
   try{
-    r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&countrycodes=gb&q=' + encodeURIComponent(q));
+    r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&polygon_geojson=1&polygon_threshold=0.0003&countrycodes=gb&q=' + encodeURIComponent(q));
   }catch(e){ throw new Error('geo'); }
   if (!r.ok) throw new Error('geo');
   const j = await r.json();
@@ -1143,7 +1147,8 @@ async function geocode(q){
     const rr = await fetch('https://api.postcodes.io/postcodes?lon=' + (+j[0].lon) + '&lat=' + (+j[0].lat) + '&limit=1');
     if (rr.ok){ const x = ((await rr.json()).result || [])[0]; if (x){ council = [x.admin_district, x.admin_county].filter(Boolean).join(', '); district = x.admin_district || ''; } }
   }catch(e){}
-  return {lat:+j[0].lat, lng:+j[0].lon, label:parts.slice(0, 2).join(', '), place:[a.town || a.city || a.village || a.suburb || '', a.state || ''].filter(Boolean).join(', '), council, district, country:a.state || ''};
+  const ar = placeArea(j[0]);
+  return {lat:ar ? ar.lat : +j[0].lat, lng:ar ? ar.lng : +j[0].lon, area:ar ? ar.poly : null, placeSearch:!!ar, label:parts.slice(0, 2).join(', '), place:[a.town || a.city || a.village || a.suburb || '', a.state || ''].filter(Boolean).join(', '), council, district, country:a.state || ''};
 }
 
 /* crime */
@@ -1467,7 +1472,7 @@ function trendText(an){
 }
 function crimePill(an){ return pill(t('rl' + an.band), an.band); }
 function head(item, sub){
-  return '<header class="rhead"><span class="chip ' + IDCLS[item.i] + '">' + LETTERS[item.i] + '</span><div><h2>' + esc(item.geo.label) + '</h2>' + (sub ? '<p>' + esc(sub) + '</p>' : '') + '</div></header>';
+  return '<header class="rhead"><span class="chip ' + IDCLS[item.i] + '">' + LETTERS[item.i] + '</span><div><h2>' + esc(item.geo.label) + '</h2>' + (sub ? '<p>' + esc(sub) + '</p>' : '') + (item.geo.placeSearch ? '<p style="font-size:13px;margin-top:4px;color:var(--muted)">' + esc(t('placeHint')) + '</p>' : '') + '</div></header>';
 }
 function unavailableCard(item, mod, sub){
   const why = item.errs && item.errs[mod];
@@ -1951,6 +1956,7 @@ function draw2d(sel, sc, ds, fitKey){
   });
   sc.crime.forEach(x => L.circleMarker([x.la, x.ln], {radius:3.2, weight:0, fillColor:x.color, fillOpacity:.55, interactive:false}).addTo(mapLayer));
   sc.pts.forEach(p => L.circleMarker([p.la, p.ln], {radius:p.r, weight:1.5, color:'#fff', fillColor:LAYERS[p.layer].color, fillOpacity:.92}).bindPopup(popupHTML(p.name, p.layer, p.d, p.extra)).addTo(mapLayer));
+  if (g.area && g.area.length > 3) L.polygon(g.area, {color:'#6b7280', weight:2, opacity:.8, fill:false, interactive:false}).addTo(mapLayer);   // place outline
   L.circle([g.lat, g.lng], {radius:sc.ring.r, color:sc.ring.color, weight:2, dashArray:'5 6', fillOpacity:.03, interactive:false}).addTo(mapLayer);
   ds.forEach(x => {
     const icon = L.divIcon({className:'', html:pinHTML(x.item.i), iconSize:[28, 28], iconAnchor:[14, 28]});
