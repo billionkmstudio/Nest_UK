@@ -9,7 +9,7 @@ globalThis.caches = { default: {
 const ctx = { waitUntil(p) { pending.push(p); } };
 let pending = [];
 let calls = [];
-let policeMode = 'ok', overpassMode = 'ok';
+let floodMode = 'ok', policeMode = 'ok', overpassMode = 'ok';
 const crimeRow = { category: 'burglary', location: { latitude: '51.2', longitude: '-0.5', street: { name: 'High St' } } };
 globalThis.fetch = async (u, o) => {
   u = String(u); calls.push(u);
@@ -20,6 +20,7 @@ globalThis.fetch = async (u, o) => {
     if (policeMode === 'cap' && u.includes('lat=')) return R(503, {});
     return R(200, [crimeRow]);
   }
+  if (u.includes('flood-monitoring')) return floodMode === 'down' ? R(500, {}) : R(200, { items: [{ severityLevel: 3, severity: 'Flood alert', description: 'River Wey', extra: 'x' }] });
   if (u.includes('interpreter')) {
     if (overpassMode === 'down' || (overpassMode === 'first-down' && u.includes('overpass-api.de'))) return R(429, {});
     return R(200, { elements: [{ type: 'node', id: 1 }] });
@@ -71,5 +72,14 @@ check('falls back to next mirror', x.r.status === 200 && calls.length === 2, cal
 overpassMode = 'down';
 x = await call('/api/overpass?kind=roads&lat=51.3&lng=-0.5'); check('all mirrors down -> 502', x.r.status === 502, x);
 check('error responses are not cached', ![...store.keys()].some(k => k.includes('kind=roads') && !k.includes('stale')));
+
+x = await call('/api/flood-warnings?lat=51.2361&lng=-0.5704');
+check('flood warnings ok and trimmed', x.r.status === 200 && x.j.items[0].severityLevel === 3 && !('extra' in x.j.items[0]), x.j);
+calls = []; x = await call('/api/flood-warnings?lat=51.23611&lng=-0.57041'); check('flood warnings cached', calls.length === 0, calls);
+floodMode = 'down';
+for (const k of [...store.keys()]) if (k.includes('/fw?') || k.includes('/fw%')) store.delete(k);
+for (const k of [...store.keys()]) if (k.endsWith('/fw?lat=51.2361&lng=-0.5704')) store.delete(k);
+x = await call('/api/flood-warnings?lat=51.2361&lng=-0.5704'); check('stale warnings when EA is down', x.j.stale === true && x.j.items.length === 1, x.j);
+x = await call('/api/flood-warnings?lat=60&lng=-9'); check('flood warnings outside range rejected', x.r.status === 400, x);
 
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);
