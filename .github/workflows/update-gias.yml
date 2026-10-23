@@ -39,7 +39,8 @@ jobs:
 
       - name: Commit if changed
         run: |
-          if git diff --quiet -- public/data/schools.json; then
+          # "git status" also sees a brand-new (untracked) file; "git diff" would not.
+          if [ -z "$(git status --porcelain -- public/data/schools.json)" ]; then
             echo "No change in school data."
           else
             git config user.name "github-actions[bot]"
