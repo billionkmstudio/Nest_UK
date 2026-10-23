@@ -5,10 +5,12 @@
 //   /api/flood  flood-risk band (Environment Agency)
 //   /api/crime-last-updated, /api/crime  police.uk street crime, edge-cached
 //   /api/flood-warnings  live flood warnings (Environment Agency), edge-cached
+//   /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas.json (src/seo.js)
 //   /api/overpass?kind=edu|extra|life|roads|bus  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
 
 import Q from '../public/queries.js';
+import { seoHandler } from './seo.js';
 
 const json = (obj, status = 200, extra = {}) =>
   new Response(JSON.stringify(obj), {
@@ -494,6 +496,7 @@ export default {
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
+    if (url.pathname === '/sitemap.xml' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/')) return seoHandler(request, env, ctx, url);
     return env.ASSETS.fetch(request);
   },
 };

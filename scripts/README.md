@@ -17,3 +17,13 @@ Manual update:
 When `public/data/schools.json` is missing, the site falls back to the old OpenStreetMap guess. When it is present but a school has no match, a school that OpenStreetMap suggests is private is listed as "type not confirmed" instead of being counted as private.
 
 Data: DfE, Open Government Licence v3.0.
+
+## Area pages (`/uk/...`)
+
+`scripts/areas.json` lists the towns (name and centre point). `node scripts/build-areas.mjs` fetches 12 months of
+police.uk street crime inside a fixed 1.2 km square around each point, adds school counts from `public/data/schools.json`,
+and writes `public/data/areas.json`. `src/seo.js` renders the pages from that file: town, crime and schools pages,
+the county page, the "safest towns" ranking and `/sitemap.xml`. A town with fewer than 30 recorded crimes is marked
+`noindex` and left out of the sitemap and ranking. The workflow `update-areas.yml` runs this on the 22nd of each month;
+run it by hand the first time from the Actions tab. Until `areas.json` exists the pages return 404 and the sitemap lists only the homepage.
+Tests: `node scripts/test-seo.mjs`.
