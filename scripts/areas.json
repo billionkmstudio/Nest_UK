@@ -1,0 +1,24 @@
+{
+  "county": "surrey",
+  "countyName": "Surrey",
+  "note": "Approximate town-centre coordinates. Crime is counted within 600 m of this point, so keep it on the high street.",
+  "towns": [
+    ["Guildford", 51.2362, -0.5704], ["Woking", 51.3190, -0.5580], ["Camberley", 51.3350, -0.7430],
+    ["Farnham", 51.2145, -0.7990], ["Godalming", 51.1860, -0.6140], ["Epsom", 51.3360, -0.2670],
+    ["Leatherhead", 51.2960, -0.3330], ["Dorking", 51.2320, -0.3320], ["Reigate", 51.2370, -0.2060],
+    ["Redhill", 51.2400, -0.1700], ["Staines-upon-Thames", 51.4340, -0.5120], ["Egham", 51.4300, -0.5600],
+    ["Weybridge", 51.3730, -0.4560], ["Walton-on-Thames", 51.3870, -0.4140], ["Cobham", 51.3270, -0.4120],
+    ["Esher", 51.3690, -0.3640], ["Addlestone", 51.3720, -0.4930], ["Chertsey", 51.3910, -0.5080],
+    ["Ashford", 51.4350, -0.4650], ["Sunbury-on-Thames", 51.4270, -0.4180], ["Caterham", 51.2820, -0.0790],
+    ["Oxted", 51.2570, -0.0040], ["Banstead", 51.3230, -0.2000], ["Ewell", 51.3450, -0.2430],
+    ["Horley", 51.1710, -0.1610], ["Lingfield", 51.1760, -0.0100], ["Haslemere", 51.0890, -0.7120],
+    ["Cranleigh", 51.1410, -0.4890], ["Ash", 51.2480, -0.7130], ["Frimley", 51.3120, -0.7370],
+    ["Bagshot", 51.3640, -0.6970], ["Windlesham", 51.3640, -0.6370], ["Chobham", 51.3550, -0.5990],
+    ["West Byfleet", 51.3410, -0.5050], ["Byfleet", 51.3410, -0.4720], ["Knaphill", 51.3110, -0.6200],
+    ["Ripley", 51.2700, -0.4900], ["Great Bookham", 51.2790, -0.3800], ["Ashtead", 51.3130, -0.2980],
+    ["Tadworth", 51.2920, -0.2400], ["Kingswood", 51.2970, -0.2190], ["Merstham", 51.2640, -0.1510],
+    ["Lightwater", 51.3590, -0.6060], ["Virginia Water", 51.4000, -0.5640], ["Shepperton", 51.3960, -0.4470],
+    ["Stanwell", 51.4570, -0.4800], ["Hersham", 51.3720, -0.3890], ["Claygate", 51.3630, -0.3470],
+    ["Godstone", 51.2490, -0.0620], ["Warlingham", 51.3050, -0.0680], ["Hindhead", 51.1130, -0.7160]
+  ]
+}

@@ -490,7 +490,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.19';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.20';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -2305,6 +2305,10 @@ function applyTheme(th){
   $('#lang-en').onclick = () => setLang('en');
   $('#lang-zh').onclick = () => setLang('zh');
   $('#form').addEventListener('submit', e => { e.preventDefault(); run(); });
+  try{   // links from the area pages: /?q=Camberley, Surrey
+    const q0 = new URLSearchParams(location.search).get('q');
+    if (q0 && q0.trim()){ $('#q0').value = q0.trim().slice(0, 120); setTimeout(run, 0); }
+  }catch(e){}
   $('#sbar').onclick = () => expandSearch(true);
   $('#addMore').onclick = () => {
     const r = ['row1', 'row2'].map(id => $('#' + id)).find(n => n.hidden);
