@@ -489,7 +489,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.16';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.17';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -943,8 +943,8 @@ const T = {
     fl_src:'Source: Environment Agency, Risk of Flooding from Rivers and Sea, and the flood warning feed. The band is the highest found at the point or within 25 m.',
     fl_btn:'Open the GOV.UK flood risk check',
     /* schools */
-    sc_prim1:'Primary schools within 1 mile', sc_primNear:'Nearest primary', sc_sec3:'Secondary schools within 3 miles', sc_secNear:'Nearest secondary',
-    sc_stateOnly:'State schools only (hide independent / private schools)', sc_listPrim:'Nearest primary schools', sc_listSec:'Nearest secondary schools', sc_listNurs:'Nursery and early years', sc_listUni:'Universities and colleges', sc_nursNear:'Nearest nursery', sc_uniNear:'Nearest university or college', sc_listInd:'Independent schools', sc_listOther:'Other schools (phase not tagged)', sc_listUnconf:'Possibly independent (type not confirmed by the DfE)', sc_gias:'DfE', sc_gias_t:'Open this school’s record on Get Information about Schools (DfE)',
+    sc_prim1:'State primary schools within 1 mile', sc_primNear:'Nearest state primary', sc_sec3:'State secondary schools within 3 miles', sc_secNear:'Nearest state secondary',
+    sc_stateOnly:'Hide independent (private) schools', sc_listPrim:'Nearest state primary schools', sc_listSec:'Nearest state secondary schools', sc_listNurs:'Nursery and early years', sc_listUni:'Universities and colleges', sc_nursNear:'Nearest nursery', sc_uniNear:'Nearest university or college', sc_listInd:'Independent schools', sc_listOther:'Other schools (phase not tagged)', sc_listUnconf:'Possibly independent (type not confirmed by the DfE)', sc_gias:'DfE', sc_gias_t:'Open this school’s record on Get Information about Schools (DfE)',
     sc_none:'None found in this range.', sc_faith:'Faith', walk:'~{n} min walk',
     sc_note1:'Distances are in a straight line. Walking time assumes about 80 m a minute and a route 30% longer than the straight line. State school counts exclude independent schools.',
     sc_note2:'Living close does not guarantee a place. Councils decide admission using catchment or priority areas and each school’s oversubscription rules, and these change every year. Check the council admissions page, and ask for the furthest distance offered last year.',
@@ -1040,8 +1040,8 @@ const T = {
     fl_gap:'這裡沒有涵蓋：地面積水（大雨）、地下水和水塘。請用 GOV.UK 服務查詢，並向賣家或業主問清楚過往有否水浸，也要確認買得到家居保險。',
     fl_src:'資料來源：環境署「河流及海水水浸風險」和水浸警告數據。風險級別取該位置或 25 米內最高的一級。',
     fl_btn:'打開 GOV.UK 水浸風險查詢',
-    sc_prim1:'1 英里內的小學', sc_primNear:'最近的小學', sc_sec3:'3 英里內的中學', sc_secNear:'最近的中學',
-    sc_stateOnly:'只看公立學校（隱藏私立學校）', sc_listPrim:'最近的小學', sc_listSec:'最近的中學', sc_listNurs:'幼稚園及學前班', sc_listUni:'大學及學院', sc_nursNear:'最近的幼稚園', sc_uniNear:'最近的大學或學院', sc_listInd:'私立學校', sc_listOther:'其他學校（未標明小學或中學）', sc_listUnconf:'可能是私立（教育部資料未能確認類型）', sc_gias:'教育部', sc_gias_t:'在英國教育部 Get Information about Schools 查看這間學校的紀錄',
+    sc_prim1:'1 英里內的公立小學', sc_primNear:'最近的公立小學', sc_sec3:'3 英里內的公立中學', sc_secNear:'最近的公立中學',
+    sc_stateOnly:'隱藏私立學校', sc_listPrim:'最近的公立小學', sc_listSec:'最近的公立中學', sc_listNurs:'幼稚園及學前班', sc_listUni:'大學及學院', sc_nursNear:'最近的幼稚園', sc_uniNear:'最近的大學或學院', sc_listInd:'私立學校', sc_listOther:'其他學校（未標明小學或中學）', sc_listUnconf:'可能是私立（教育部資料未能確認類型）', sc_gias:'教育部', sc_gias_t:'在英國教育部 Get Information about Schools 查看這間學校的紀錄',
     sc_none:'這個範圍內搵唔到。', sc_faith:'宗教學校', walk:'步行約 {n} 分鐘',
     sc_note1:'距離是直線距離。步行時間以每分鐘約 80 米、實際路程比直線長 30% 估算。公立學校數目不包括私立學校。',
     sc_note2:'住得近不等於一定有學位。議會會按學區或優先區域，以及每間學校的超額申請準則派位，而且每年都可能改變。請查閱議會的入學網頁，並查詢去年派位的最遠距離。',
