@@ -3,7 +3,11 @@
 //   /api/buses  live buses   (secret: BODS_API_KEY)
 //   /api/hpi    house prices (HM Land Registry UKHPI)
 //   /api/flood  flood-risk band (Environment Agency)
+//   /api/crime-last-updated, /api/crime  police.uk street crime, edge-cached
+//   /api/overpass?kind=edu|extra|life|roads|bus  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
+
+import Q from '../public/queries.js';
 
 const json = (obj, status = 200, extra = {}) =>
   new Response(JSON.stringify(obj), {
@@ -332,12 +336,138 @@ async function flood(request, env, ctx, url) {
 }
 
 /* ============================== ROUTER ============================== */
+/* ============================ CRIME + OVERPASS (edge-cached) ============================ */
+const POLICE = 'https://data.police.uk/api/';
+const UA = 'NestUK/1.0 (+https://nestuk.co.uk)';
+const CAP_R = 600;                       // keep in step with the page: radius used when police.uk refuses a big query
+const snap = v => Math.round(v * 1e4) / 1e4;   // ~11 m; makes repeat searches share one cache entry
+const inUK = (lat, lng) => lat > 49.8 && lat < 61 && lng > -8.7 && lng < 2;
+
+function squarePoly(lat, lng, r) {
+  const dLat = r / 111320, dLng = r / (111320 * Math.cos(lat * Math.PI / 180));
+  const f = n => n.toFixed(6);
+  return [[lat + dLat, lng - dLng], [lat + dLat, lng + dLng], [lat - dLat, lng + dLng], [lat - dLat, lng - dLng]]
+    .map(p => f(p[0]) + ',' + f(p[1])).join(':');
+}
+function monthMinus(n, now = new Date()) {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - n, 1));
+  return d.toISOString().slice(0, 7);
+}
+const cacheKey = (path, params) => new Request('https://cache.nestuk.internal' + path + '?' + new URLSearchParams(params).toString());
+const cached = (body, status, maxAge, extra = {}) =>
+  json(body, status, { 'Cache-Control': 'public, max-age=' + maxAge, ...extra });
+
+// Returns {res, body}; refreshes via fetchFresh() when missing; on failure serves a long-lived stale copy if any.
+async function edgeCached(ctx, key, staleKey, ttl, staleTtl, fetchFresh) {
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  let fresh = null;
+  try { fresh = await fetchFresh(); } catch (e) { fresh = null; }
+  if (fresh) {
+    const res = cached(fresh, 200, ttl, { 'X-Nest-Cache': 'miss' });
+    ctx.waitUntil(cache.put(key, res.clone()));
+    ctx.waitUntil(cache.put(staleKey, cached(fresh, 200, staleTtl)));
+    return res;
+  }
+  const stale = await cache.match(staleKey);
+  if (stale) {
+    const body = await stale.json();
+    return json({ ...body, stale: true }, 200, { 'Cache-Control': 'no-store', 'X-Nest-Cache': 'stale' });
+  }
+  return null;
+}
+
+async function policeJSON(path) {
+  let last = 0;
+  for (let i = 0; i < 2; i++) {
+    const r = await fetch(POLICE + path, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(20000) });
+    last = r.status;
+    if (r.ok) return { status: 200, data: await r.json() };
+    if (r.status === 503 || r.status === 404) return { status: r.status };   // 503 = too many crimes; 404 = month not published
+    if (r.status !== 429 && r.status < 500) break;
+    await new Promise(res => setTimeout(res, 800 * (i + 1)));
+  }
+  return { status: last };
+}
+
+async function crimeLastUpdated(request, env, ctx) {
+  const res = await edgeCached(ctx, cacheKey('/last', {}), cacheKey('/last-stale', {}), 6 * 3600, 30 * 86400, async () => {
+    const r = await policeJSON('crime-last-updated');
+    if (r.status !== 200 || !r.data || !r.data.date) return null;
+    return { month: String(r.data.date).slice(0, 7) };
+  });
+  // Both the fresh and stale paths failed: tell the page to use its own guess (three months back is safe).
+  return res || json({ month: monthMinus(3), guess: true }, 200, { 'Cache-Control': 'no-store' });
+}
+
+async function crime(request, env, ctx, url) {
+  const lat = snap(parseFloat(url.searchParams.get('lat'))), lng = snap(parseFloat(url.searchParams.get('lng')));
+  const date = url.searchParams.get('date') || '';
+  if (!isFinite(lat) || !isFinite(lng) || !inUK(lat, lng) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(date)) return json({ error: 'bad request' }, 400);
+  const capped = url.searchParams.get('capped') === '1';
+  // Months older than ~3 months never change, so they can live at the edge for a week.
+  const old = date < monthMinus(3);
+  const ttl = old ? 7 * 86400 : 6 * 3600;
+  const params = { lat, lng, date, capped: capped ? 1 : 0 };
+  const res = await edgeCached(ctx, cacheKey('/crime', params), cacheKey('/crime-stale', params), ttl, 30 * 86400, async () => {
+    let usedCap = capped;
+    let r = await policeJSON('crimes-street/all-crime?' + (capped ? 'poly=' + squarePoly(lat, lng, CAP_R) : 'lat=' + lat + '&lng=' + lng) + '&date=' + date);
+    if (r.status === 503 && !capped) {
+      usedCap = true;
+      r = await policeJSON('crimes-street/all-crime?poly=' + squarePoly(lat, lng, CAP_R) + '&date=' + date);
+    }
+    if (r.status !== 200 || !Array.isArray(r.data)) return null;
+    return {
+      capped: usedCap,
+      list: r.data.map(x => ({ c: x.category, la: +x.location.latitude, ln: +x.location.longitude, s: (x.location.street && x.location.street.name) || '' })),
+    };
+  });
+  return res || json({ error: 'upstream' }, 502);
+}
+
+const OVERPASS_MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+async function runOverpass(query) {
+  for (let i = 0; i < OVERPASS_MIRRORS.length; i++) {
+    try {
+      const r = await fetch(OVERPASS_MIRRORS[i], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
+        body: 'data=' + encodeURIComponent(query),
+        signal: AbortSignal.timeout(28000),
+      });
+      if (!r.ok) continue;
+      const j = await r.json();
+      const els = j.elements || [];
+      if (j.remark && /timed out|out of memory/i.test(j.remark) && !els.length) continue;
+      return els;
+    } catch (e) { /* try the next mirror */ }
+  }
+  return null;
+}
+
+async function overpass(request, env, ctx, url) {
+  const kind = url.searchParams.get('kind') || '';
+  const lat = snap(parseFloat(url.searchParams.get('lat'))), lng = snap(parseFloat(url.searchParams.get('lng')));
+  // Only fixed query kinds, built here: this is not a general Overpass proxy.
+  if (!Object.prototype.hasOwnProperty.call(Q, kind) || !isFinite(lat) || !isFinite(lng) || !inUK(lat, lng)) return json({ error: 'bad request' }, 400);
+  const params = { kind, lat, lng };
+  const res = await edgeCached(ctx, cacheKey('/ov', params), cacheKey('/ov-stale', params), 86400, 30 * 86400, async () => {
+    const els = await runOverpass(Q[kind](lat, lng));
+    return els ? { elements: els } : null;
+  });
+  return res || json({ error: 'upstream' }, 502);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/api/buses') return buses(request, env, ctx, url);
     if (url.pathname === '/api/hpi') return hpi(request, env, ctx, url);
     if (url.pathname === '/api/flood') return flood(request, env, ctx, url);
+    if (url.pathname === '/api/crime-last-updated') return crimeLastUpdated(request, env, ctx);
+    if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
+    if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
     return env.ASSETS.fetch(request);
   },
