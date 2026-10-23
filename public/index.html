@@ -143,6 +143,17 @@ input[type=text],select{width:100%;height:46px;border:1px solid var(--line);bord
 .ex{font-size:13px;color:var(--muted)}
 .ex button{background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:500 13px var(--body);cursor:pointer;margin-left:6px}
 .msg{color:var(--bad);font-weight:600;margin:12px 0 0}
+/* mobile: after a search the form folds into a one-line summary so the results get the screen */
+.sbar{display:none}
+@media (max-width:899px){
+  body.collapsed #searchsec h1,body.collapsed #searchsec .lede,body.collapsed #form{display:none}
+  body.collapsed .top{margin-bottom:12px}
+  body.collapsed .sbar{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;font:600 14px var(--body)}
+  body.collapsed .sbar .sq{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  body.collapsed .sbar .sq span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.collapsed .sbar .sq small{color:var(--muted);font:500 12px var(--body)}
+  body.collapsed .sbar .se{flex:none;color:var(--accent);font:700 13px var(--body)}
+}
 
 /* intro */
 .get{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
@@ -316,6 +327,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
   <main class="stack">
     <div class="colL">
     <section id="searchsec">
+      <button type="button" class="sbar" id="sbar" aria-expanded="false"><span class="sq" id="sbarTxt"></span><span class="se" id="sbarEdit" data-i18n="editSearch"></span></button>
       <h1 data-i18n="heroH"></h1>
       <p class="lede" data-i18n="heroP"></p>
 
@@ -804,7 +816,7 @@ const T = {
     addrLabel:'Address or postcode', ph:'e.g. M13 9WL or 10 High Street, Reading', addMore:'+ Add another address',
     radiusLabel:'Crime area around the address', r300:'300 m · 4 min walk', r600:'600 m · 8 min walk', r1609:'1 mile',
     profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use transit',
-    go:'Check these addresses', tryEx:'Try an example:',
+    go:'Check these addresses', tryEx:'Try an example:', editSearch:'Edit search',
     needAddr:'Enter at least one address or postcode.',
     g_safety:'Safety', g_safety_d:'12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.',
     g_flood:'Flood risk', g_flood_d:'Environment Agency river and sea risk, plus live flood warnings (England).',
@@ -903,7 +915,7 @@ const T = {
     addrLabel:'地址或郵編', ph:'例如 M13 9WL 或 10 High Street, Reading', addMore:'+ 加多一個地址',
     radiusLabel:'罪案統計範圍', r300:'300 米 · 步行約 4 分鐘', r600:'600 米 · 步行約 8 分鐘', r1609:'1 英里',
     profileLabel:'罪案分數側重', p_balanced:'平衡', p_driver:'我揸車', p_family:'一家大細', p_walker:'我多數行路或搭車',
-    go:'開始分析', tryEx:'試用例子：',
+    go:'開始分析', tryEx:'試用例子：', editSearch:'修改搜尋',
     needAddr:'請至少輸入一個地址或郵編。',
     g_safety:'治安', g_safety_d:'最近 12 個月的已報案罪案，按爆竊、車輛、人身安全和滋擾評分。',
     g_flood:'水浸風險', g_flood_d:'環境署的河流及海水水浸風險，加上即時水浸警告（只限英格蘭）。',
@@ -1231,6 +1243,7 @@ async function run(){
   const qs = [0, 1, 2].map(i => $('#q' + i).value.trim()).filter(Boolean);
   if (!qs.length){ setMsg(t('needAddr')); return; }
   setMsg('');
+  collapseSearch(qs);
   state.running = true; $('#go').disabled = true;
   state.t0 = Date.now();
   clearInterval(state.tick); state.tick = setInterval(() => { if (state.running) renderStatus(); }, 1000);
@@ -1261,7 +1274,23 @@ async function run(){
   state.mapIdx = first ? first.i : 0;
   state.topic = 'overview';
   $('#status').hidden = true;
+  if (!first) expandSearch(false);   /* nothing could be found: give the form back so it can be fixed */
   render();
+}
+
+/* mobile only: fold the search form into a summary bar once a search starts */
+function collapseSearch(qs){
+  if (canLanding()) return;
+  const R = state.radius;
+  $('#sbarTxt').innerHTML = qs.map((q, i) => '<span><b style="font-family:var(--display)">' + LETTERS[i] + '</b> ' + esc(q) + '</span>').join('') + '<small>' + esc(radiusText(R)) + '</small>';
+  document.body.classList.add('collapsed');
+  $('#sbar').setAttribute('aria-expanded', 'false');
+  try{ window.scrollTo({top:0}); }catch(e){}
+}
+function expandSearch(focus){
+  document.body.classList.remove('collapsed');
+  $('#sbar').setAttribute('aria-expanded', 'true');
+  if (focus){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e){} const i = $('#q0'); if (i) i.focus({preventScroll:true}); }
 }
 async function retry(i, mod){
   const it = state.items[i]; if (!it || !it.geo) return;
@@ -2184,6 +2213,7 @@ function applyTheme(th){
   $('#lang-en').onclick = () => setLang('en');
   $('#lang-zh').onclick = () => setLang('zh');
   $('#form').addEventListener('submit', e => { e.preventDefault(); run(); });
+  $('#sbar').onclick = () => expandSearch(true);
   $('#addMore').onclick = () => {
     const r = ['row1', 'row2'].map(id => $('#' + id)).find(n => n.hidden);
     if (r){ r.hidden = false; $('input', r).focus(); }
