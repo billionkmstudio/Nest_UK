@@ -44,5 +44,12 @@ function busQuery(lat, lng){
   return '[out:json][timeout:30];\nnode["highway"="bus_stop"](around:800,' + lat + ',' + lng + ');\nout qt;\nrel["route"="bus"](around:1200,' + lat + ',' + lng + ');\nout geom(' + bb + ');';
 }
 
-  return { edu: eduQuery, extra: extraQuery, life: lifeQuery, roads: roadsQuery, bus: busQuery };
+function carsQuery(lat, lng) {
+  const p = lat + ',' + lng;
+  return '[out:json][timeout:30];\n(\n' +
+    '  nwr["amenity"="fuel"](around:4800,' + p + ');\n' +
+    '  nwr["amenity"="charging_station"](around:3300,' + p + ');\n' +
+    ');\nout center tags qt;';
+}
+  return { cars: carsQuery, edu: eduQuery, extra: extraQuery, life: lifeQuery, roads: roadsQuery, bus: busQuery };
 }));
