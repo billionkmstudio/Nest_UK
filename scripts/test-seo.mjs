@@ -74,13 +74,17 @@ check('pages contain no raw template placeholders', !/\{R\}|undefined|NaN|\[obje
 import { createRequire } from 'node:module';
 const { placeArea } = createRequire(import.meta.url)('../public/place.js');
 const sq = (a, b, c, d) => ({ type: 'Polygon', coordinates: [[[a, b], [c, b], [c, d], [a, d], [a, b]]] });
-const v = placeArea({ class: 'boundary', addresstype: 'village', boundingbox: ['51.35', '51.37', '-0.62', '-0.59'], geojson: sq(-0.62, 51.35, -0.59, 51.37) });
+const v = placeArea({ category: 'boundary', addresstype: 'village', boundingbox: ['51.35', '51.37', '-0.62', '-0.59'], geojson: sq(-0.62, 51.35, -0.59, 51.37) });
 check('place: village centre is the middle of its outline', Math.abs(v.lat - 51.36) < 1e-6 && Math.abs(v.lng + 0.605) < 1e-6 && v.poly.length === 5, v);
-check('place: street result stays a point', placeArea({ class: 'highway', addresstype: 'road', boundingbox: ['51', '52', '-1', '0'] }) === null);
-const L = { class: 'boundary', addresstype: 'town', lat: '0.1', lon: '1.0', boundingbox: ['0', '2', '0', '2'], geojson: { type: 'Polygon', coordinates: [[[0, 0], [2, 0], [2, 0.2], [0.2, 0.2], [0.2, 2], [0, 2], [0, 0]]] } };
+check('place: street result stays a point', placeArea({ category: 'highway', addresstype: 'road', boundingbox: ['51', '52', '-1', '0'] }) === null);
+const L = { category: 'boundary', addresstype: 'town', lat: '0.1', lon: '1.0', boundingbox: ['0', '2', '0', '2'], geojson: { type: 'Polygon', coordinates: [[[0, 0], [2, 0], [2, 0.2], [0.2, 0.2], [0.2, 2], [0, 2], [0, 0]]] } };
 const l = placeArea(L);
 check('place: L-shaped outline never puts the centre outside it', l.lat === 0.1 && l.lng === 1, l);
-check('place: no outline falls back to bounding-box middle', placeArea({ class: 'place', addresstype: 'village', boundingbox: ['51.0', '51.2', '-0.4', '-0.2'] }).lat === 51.1);
+check('place: no outline falls back to bounding-box middle', placeArea({ category: 'place', addresstype: 'village', boundingbox: ['51.0', '51.2', '-0.4', '-0.2'] }).lat === 51.1);
+/* the real reply for "deepcut" from Nominatim jsonv2 (a village node) */
+const deepcut = placeArea({ osm_type: 'node', lat: '51.3061708', lon: '-0.7059665', category: 'place', type: 'village', addresstype: 'village', boundingbox: ['51.2861708', '51.3261708', '-0.7259665', '-0.6859665'] });
+check('place: real Nominatim jsonv2 village node is recognised', deepcut && Math.abs(deepcut.lat - 51.3061708) < 1e-6 && Math.abs(deepcut.lng + 0.7059665) < 1e-6, deepcut);
+check('place: older "class" field still works', placeArea({ class: 'place', addresstype: 'hamlet', boundingbox: ['1', '3', '1', '3'] }).lat === 2);
 const busy = prepare({ towns: [['A', 200], ['B', 40], ['C', 50], ['D', 60], ['E', 70]].map(([n, c], i) => ({ slug: n.toLowerCase(), name: n, county: 'surrey', lat: 51 + i / 100, lng: -0.5, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: c })), total: c * 12, perMonth: c, cats: { burglary: c * 12 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, nearestPrimary: [], nearestSecondary: [] } })), county: 'surrey', countyName: 'Surrey', latest: '2026-08', built: '2026-10-23', radiusM: 600 });
 const aPage = route('/uk/surrey/a', busy);
 check('wording: very busy centre gets footfall caveat, no huge percentage', aPage.includes('footfall') === false && aPage.includes('more people pass through') && !/\d{3}% above/.test(aPage) && aPage.includes('well above the median'), aPage.slice(0, 50));

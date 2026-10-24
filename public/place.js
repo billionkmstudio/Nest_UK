@@ -28,7 +28,8 @@ function pointInRing(x, y, r){
 function placeArea(res){
   try{
     const typ = res.addresstype || res.type;
-    if (!(res.class === 'place' || res.class === 'boundary') || !PLACE_TYPES.test(typ)) return null;
+    const cat = res.category || res.class;   // Nominatim's jsonv2 format calls it "category"; the older format "class"
+    if (!(cat === 'place' || cat === 'boundary') || !PLACE_TYPES.test(typ)) return null;
     const g = res.geojson, bb = (res.boundingbox || []).map(Number);
     let ring = null;
     if (g && g.type === 'Polygon') ring = g.coordinates[0];
