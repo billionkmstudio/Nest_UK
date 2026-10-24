@@ -536,7 +536,7 @@ export default {
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
-    if (url.pathname === '/sitemap.xml' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/')) return seoHandler(request, env, ctx, url);
+    if (url.pathname === '/sitemap.xml' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/') || url.pathname.startsWith('/zh/')) return seoHandler(request, env, ctx, url);
     return env.ASSETS.fetch(request);
   },
 };

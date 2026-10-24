@@ -94,4 +94,25 @@ const small = prepare({ towns: [{ slug: 'tiny-town', name: 'Tiny Town', county: 
 check('trend: not printed when under 20 crimes a month', !route('/uk/surrey/tiny-town', small).includes('than the months before'));
 check('trend: printed for a bigger town', route('/uk/surrey/big-town', small).includes('higher than the months before'));
 
+
+/* ---- Chinese pages ---- */
+resetMemo();
+let z = await get('/zh/uk/surrey/gamma-town');
+check('zh town page 200, zh-HK, own canonical', z.r.status === 200 && z.t.includes('<html lang="zh-HK">') && z.t.includes('<link rel="canonical" href="https://nestuk.co.uk/zh/uk/surrey/gamma-town">'), z.t.slice(0, 160));
+check('zh town page: hreflang pair + x-default to English', z.t.includes('hreflang="en-GB" href="https://nestuk.co.uk/uk/surrey/gamma-town"') && z.t.includes('hreflang="zh-HK" href="https://nestuk.co.uk/zh/uk/surrey/gamma-town"') && z.t.includes('hreflang="x-default" href="https://nestuk.co.uk/uk/surrey/gamma-town"'));
+check('zh town page: Chinese title, numbers from data, English town name kept', z.t.includes('治安、罪案及學校一覽') && z.t.includes('720') && z.t.includes('Gamma Town'));
+check('zh town page: FAQ JSON-LD in Chinese, indexable', z.t.includes('"@type":"FAQPage"') && z.t.includes('治安好嗎') && !z.t.includes('noindex'));
+check('zh town page: CTA opens the app in Chinese', z.t.includes('/?q=Gamma%20Town%2C%20Surrey&amp;lang=zh'));
+check('zh page links to English and English page links to zh', z.t.includes('href="/uk/surrey/gamma-town" hreflang="en-GB">English') && (await get('/uk/surrey/gamma-town')).t.includes('href="/zh/uk/surrey/gamma-town" hreflang="zh-HK">中文'));
+x = await get('/zh/uk/surrey/tiny'); check('zh thin town is noindex like English', x.r.status === 200 && x.t.includes('noindex'));
+x = await get('/zh/uk/surrey/gamma-town/crime'); check('zh crime page: chart, Chinese categories', x.t.includes('<svg') && x.t.includes('反社會行為') && x.t.includes('入屋盜竊') && !x.t.includes('Anti-social'));
+x = await get('/zh/uk/surrey/gamma-town/schools'); check('zh schools page', x.r.status === 200 && x.t.includes('最近的公立小學') && x.t.includes('附近學校'));
+x = await get('/zh/uk/surrey'); check('zh county page lists towns, mentions BNO', x.t.includes('/zh/uk/surrey/gamma-town') && x.t.includes('BNO') && !x.t.includes('/zh/uk/surrey/tiny"'));
+x = await get('/zh/best/safest-towns-in-surrey'); check('zh ranking page', x.r.status === 200 && x.t.includes('最安全市鎮排名') && x.t.indexOf('Beta') < x.t.indexOf('Gamma Town') || x.t.indexOf('Alpha') < x.t.indexOf('Gamma Town'));
+x = await get('/zh/uk/surrey/nowhere'); check('zh unknown town is 404', x.r.status === 404);
+x = await get('/zh/'); check('zh root is 404, not a crash', x.r.status === 404);
+const sm2 = sitemapXml(D);
+check('sitemap: zh pages with hreflang alternates, thin town still out', sm2.includes('<loc>https://nestuk.co.uk/zh/uk/surrey/gamma-town/crime</loc>') && sm2.includes('xmlns:xhtml') && sm2.includes('hreflang="zh-HK" href="https://nestuk.co.uk/zh/best/safest-towns-in-surrey"') && !sm2.includes('/zh/uk/surrey/tiny'));
+check('English county page links to nothing broken: still no zh noindex leak', !(await get('/uk/surrey')).t.includes('noindex'));
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);

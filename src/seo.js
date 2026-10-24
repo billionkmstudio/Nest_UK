@@ -4,6 +4,7 @@
 //   /uk/surrey/<town>/crime           crime page
 //   /uk/surrey/<town>/schools         schools page
 //   /best/safest-towns-in-surrey      ranking
+//   /zh/uk/...  /zh/best/...          Traditional Chinese versions of the same pages (hreflang-linked)
 //   /sitemap.xml                      all indexable pages
 // Every number on a page comes from the data file. A town with too little data is marked noindex and left out of
 // the sitemap and the rankings.
@@ -105,19 +106,26 @@ td.n,th.n{text-align:right;white-space:nowrap}.btn{display:inline-block;backgrou
 @media(prefers-color-scheme:dark){.btn{color:#10151f}}
 .mut{color:var(--mut);font-size:14px}.links a{display:inline-block;margin:4px 10px 4px 0}footer{padding-bottom:40px;margin-top:32px;color:var(--mut);font-size:13px}svg{max-width:100%;height:auto}`;
 
-function layout({ title, desc, path: p, crumbs, h1, body, noindex, ld }) {
+const FOOT_EN = `<footer><p>Sources: crime data from <a href="https://data.police.uk/">data.police.uk</a>; school data from the Department for Education <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>. Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.</p>
+<p>Figures are recorded crimes within about 600 m of the town centre, not a rate per resident, and busy town centres record more crime because more people pass through. Use them to compare areas, then check the exact address.</p></footer>`;
+const FOOT_ZH = `<footer><p>資料來源：罪案數字來自 <a href="https://data.police.uk/">data.police.uk</a>；學校資料來自英國教育部 <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>。內容包含根據 <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a> 授權的公共部門資料。</p>\n<p>數字為市中心約 600 米範圍內警方記錄的罪案宗數，並非按居民人口計算的比率；人流較多的市中心記錄的罪案自然較多。請用來比較不同地區，再查看確實地址。地名及學校名稱保留英文，方便搜尋及核對。</p></footer>`;
+
+function layout({ title, desc, path: p, crumbs, h1, body, noindex, ld, lang = 'en' }) {
+  const zh = lang === 'zh';
   const canonical = SITE + p;
+  const hasAlt = /^\/(zh\/)?(uk|best)\//.test(p);
+  const enPath = zh ? p.slice(3) : p, zhPath = zh ? p : '/zh' + p;
   const bc = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: SITE + c[1] })) };
   const ldAll = [bc].concat(ld || []).map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, '\\u003c') + '</script>').join('\n');
-  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  return `<!doctype html><html lang="${zh ? 'zh-HK' : 'en-GB'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(canonical)}">
+${hasAlt ? `<link rel="alternate" hreflang="en-GB" href="${SITE}${enPath}"><link rel="alternate" hreflang="zh-HK" href="${SITE}${zhPath}"><link rel="alternate" hreflang="x-default" href="${SITE}${enPath}">` : ''}
 ${noindex ? '<meta name="robots" content="noindex,follow">' : ''}<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="website">
 <style>${CSS}</style>${ldAll}</head><body>
-<header><a class="brand" href="/">Nest UK</a><a href="/">Check an address</a></header>
+<header><a class="brand" href="/">Nest UK</a><span>${hasAlt ? `<a href="${zh ? enPath : zhPath}" hreflang="${zh ? 'en-GB' : 'zh-HK'}">${zh ? 'English' : '中文'}</a> · ` : ''}<a href="${zh ? '/?lang=zh' : '/'}">${zh ? '查詢地址' : 'Check an address'}</a></span></header>
 <main><nav class="crumbs">${crumbs.map((c, i) => i === crumbs.length - 1 ? esc(c[0]) : '<a href="' + esc(c[1]) + '">' + esc(c[0]) + '</a>').join(' › ')}</nav>
 <h1>${esc(h1)}</h1>${body}</main>
-<footer><p>Sources: crime data from <a href="https://data.police.uk/">data.police.uk</a>; school data from the Department for Education <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>. Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.</p>
-<p>Figures are recorded crimes within about 600 m of the town centre, not a rate per resident, and busy town centres record more crime because more people pass through. Use them to compare areas, then check the exact address.</p></footer></body></html>`;
+${zh ? FOOT_ZH : FOOT_EN}</body></html>`;
 }
 
 const cta = (t, D) => `<p><a class="btn" href="/?q=${encodeURIComponent(t.name + ', ' + D.countyName)}">Check an exact address in ${esc(t.name)}</a></p>`;
@@ -229,12 +237,162 @@ ${rankingTable(D)}<p class="mut">This is a count of recorded crime near the cent
   });
 }
 
+/* ------------------------- Traditional Chinese pages ------------------------- */
+// Same data, same rules (noindex, rankings) as the English pages. Town and school names stay in English so they
+// can be searched and checked against the sources.
+const ZH_COUNTY = { surrey: '薩里郡' };
+const ZH_CAT = {
+  'anti-social-behaviour': '反社會行為', 'bicycle-theft': '單車盜竊', 'burglary': '入屋盜竊', 'criminal-damage-arson': '刑事毀壞及縱火',
+  'drugs': '毒品', 'other-crime': '其他罪案', 'other-theft': '其他盜竊', 'possession-of-weapons': '管有武器', 'public-order': '擾亂公共秩序',
+  'robbery': '搶劫', 'shoplifting': '店舖盜竊', 'theft-from-the-person': '隨身財物盜竊', 'vehicle-crime': '車輛相關罪案', 'violent-crime': '暴力及性罪案',
+};
+const zhCat = c => ZH_CAT[c] || pretty(c);
+const zhMonth = m => { const [y, mm] = m.split('-'); return y + '年' + Number(mm) + '月'; };
+const zhMiles = d => (d / MI < 0.1 ? Math.round(d) + ' 米' : (d / MI).toFixed(1) + ' 英里');
+const zhWalk = d => '步行約 ' + Math.max(1, Math.round(d * 1.25 / 80)) + ' 分鐘';
+const zhCounty = D => D.countyName + (ZH_COUNTY[D.county] ? '（' + ZH_COUNTY[D.county] + '）' : '');
+const zhCountyIn = D => D.countyName + (ZH_COUNTY[D.county] ? ' ' + ZH_COUNTY[D.county] : '');   // for use inside brackets
+const zhPath = p => '/zh' + p;
+const zhCta = (t, D) => `<p><a class="btn" href="/?q=${encodeURIComponent(t.name + ', ' + D.countyName)}&amp;lang=zh">查詢 ${esc(t.name)} 的實際地址</a></p>`;
+const zhStamp = D => `<p class="mut">罪案資料截至 ${esc(zhMonth(D.latest))}；學校名單根據英國教育部資料（${esc(D.built)} 更新）。每月更新。</p>`;
+const zhCrumbHome = ['Nest UK 首頁', '/'];
+
+function zhCrimeSentence(t, D) {
+  const c = t.crime, parts = [];
+  parts.push('截至 ' + zhMonth(D.latest) + ' 的 12 個月內，' + t.name + ' 市中心 ' + D.radiusM + ' 米範圍內共錄得 ' + num(c.total) + ' 宗警方記錄罪案，平均每月約 ' + num(c.perMonth) + ' 宗。');
+  if (t.indexable) {
+    const r = t.rank, n = D.count;
+    if (r <= Math.ceil(n * 0.25)) parts.push('在比較的 ' + n + ' 個 ' + D.countyName + ' 市鎮中，罪案宗數由低至高排第 ' + r + ' 位，屬較寧靜的四分之一。');
+    else if (r > n - Math.ceil(n * 0.25)) parts.push('在比較的 ' + n + ' 個 ' + D.countyName + ' 市鎮中，罪案宗數由高至低排第 ' + (n - r + 1) + ' 位，屬較繁忙的四分之一。市中心人流多，記錄的罪案自然較多，不一定反映周邊住宅街道的情況。');
+    else parts.push('在 ' + n + ' 個 ' + D.countyName + ' 市鎮中，罪案宗數由低至高排第 ' + r + ' 位。');
+    if (t.vsMedian !== null && t.vsMedian > 100) parts.push('遠高於市鎮中位數，有商店及車站的較大市鎮通常如此。');
+    else if (t.vsMedian !== null && Math.abs(t.vsMedian) >= 5) parts.push('比市鎮中位數' + (t.vsMedian < 0 ? '低 ' : '高 ') + Math.abs(t.vsMedian) + '%。');
+    else if (t.vsMedian !== null) parts.push('與市鎮中位數相若。');
+  }
+  if (t.trend !== null && c.perMonth >= 20 && Math.abs(t.trend) >= 5) parts.push('最近半年的宗數比之前半年' + (t.trend < 0 ? '低 ' : '高 ') + Math.abs(t.trend) + '%。');
+  return parts.join('');
+}
+function zhSchoolSentence(t) {
+  const s = t.schools, p = s.nearestPrimary[0], q = s.nearestSecondary[0];
+  const bits = [t.name + ' 市中心 1 英里內有 ' + s.primary1mi + ' 間公立小學（state primary），3 英里內有 ' + s.secondary3mi + ' 間公立中學（state secondary）。'];
+  if (p) bits.push('最近的公立小學是 ' + p.name + '（' + zhMiles(p.d) + '）。');
+  if (q) bits.push('最近的公立中學是 ' + q.name + '（' + zhMiles(q.d) + '）。');
+  return bits.join('');
+}
+function zhBarChart(t) { return barChart(t).replace('aria-label="Recorded crimes per month in ' + esc(t.name) + '"', 'aria-label="' + esc(t.name) + ' 每月警方記錄罪案宗數"'); }
+
+function zhTownPage(t, D) {
+  const c = t.crime, s = t.schools, cats = topCats(t, 3), cn = zhCounty(D), tp = townPath(t);
+  const faq = [
+    [t.name + ' 治安好嗎？罪案多不多？', zhCrimeSentence(t, D)],
+    [t.name + ' 最常見的罪案類型是什麼？', '市中心 ' + D.radiusM + ' 米範圍內，記錄最多的類別是 ' + cats.map(x => zhCat(x.c) + '（' + x.pct + '%）').join('、') + '。'],
+    [t.name + ' 附近有好學校嗎？', zhSchoolSentence(t) + '本頁不評級學校，決定前請查看 Ofsted 報告及學校自己的資料。'],
+  ];
+  const nearby = t.nearby.length ? `<h2>附近市鎮</h2><ul>${t.nearby.map(o => `<li><a href="${zhPath(townPath(o))}">${esc(o.name)}</a>：在 ${D.count} 個市鎮中罪案宗數由低至高排第 ${o.rank} 位</li>`).join('')}</ul>` : '';
+  const body = `<p>${esc(zhCrimeSentence(t, D))}</p>
+<div class="card"><table><tr><th>項目</th><th class="n">${esc(t.name)}</th></tr>
+<tr><td>過去 12 個月警方記錄罪案</td><td class="n">${num(c.total)} 宗</td></tr>
+<tr><td>平均每月</td><td class="n">${num(c.perMonth)} 宗</td></tr>
+${t.indexable ? `<tr><td>排名（1 = ${D.count} 個 ${esc(D.countyName)} 市鎮中罪案最少）</td><td class="n">${t.rank}</td></tr>` : ''}
+<tr><td>1 英里內公立小學</td><td class="n">${s.primary1mi} 間</td></tr>
+<tr><td>3 英里內公立中學</td><td class="n">${s.secondary3mi} 間</td></tr>
+<tr><td>2 英里內私立（independent）學校</td><td class="n">${s.independent2mi} 間</td></tr></table></div>
+${zhCta(t, D)}
+<div class="links"><a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情 →</a><a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校 →</a></div>
+<h2>學校</h2><p>${esc(zhSchoolSentence(t))}</p>
+<h2>常見問題</h2>${faq.map(f => `<h3>${esc(f[0])}</h3><p>${esc(f[1])}</p>`).join('')}
+${nearby}${zhStamp(D)}`;
+  const ld = [{ '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: 'zh-HK', mainEntity: faq.map(f => ({ '@type': 'Question', name: f[0], acceptedAnswer: { '@type': 'Answer', text: f[1] } })) },
+    { '@context': 'https://schema.org', '@type': 'Place', name: t.name + ', ' + D.countyName, geo: { '@type': 'GeoCoordinates', latitude: t.lat, longitude: t.lng } }];
+  return layout({
+    lang: 'zh', title: t.name + '（' + zhCountyIn(D) + '）治安、罪案及學校一覽｜Nest UK',
+    desc: t.name + ' 過去 12 個月錄得 ' + num(c.total) + ' 宗警方記錄罪案' + (t.indexable ? '，在 ' + D.count + ' 個 ' + D.countyName + ' 市鎮中由低至高排第 ' + t.rank + ' 位' : '') + '。1 英里內有 ' + s.primary1mi + ' 間公立小學、3 英里內有 ' + s.secondary3mi + ' 間公立中學。資料來自 Police.uk 及英國教育部，每月更新。',
+    path: zhPath(tp), h1: t.name + '（' + zhCountyIn(D) + '）：治安與學校概覽', body, noindex: !t.indexable, ld,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)]],
+  });
+}
+function zhCrimePage(t, D) {
+  const c = t.crime, cn = zhCounty(D), tp = townPath(t), cats = Object.entries(c.cats).sort((a, b) => b[1] - a[1]);
+  const peak = c.months.slice().sort((a, b) => b.n - a.n)[0], low = c.months.slice().sort((a, b) => a.n - b.n)[0];
+  const body = `<p>${esc(zhCrimeSentence(t, D))}</p>
+<h2>每月警方記錄罪案</h2>${zhBarChart(t)}
+<p class="mut">最多的一個月：${esc(zhMonth(peak.m))}（${peak.n} 宗）。最少的一個月：${esc(zhMonth(low.m))}（${low.n} 宗）。</p>
+<h2>罪案類型</h2><table><tr><th>類別</th><th class="n">宗數</th><th class="n">佔比</th></tr>
+${cats.map(([k, n]) => `<tr><td>${esc(zhCat(k))}</td><td class="n">${num(n)}</td><td class="n">${Math.round(n / c.total * 100)}%</td></tr>`).join('')}</table>
+<h2>如何解讀</h2><p>Police.uk 只記錄每宗罪案的大約位置，這裏統計的是以市中心為中心、邊長約 ${D.radiusM * 2} 米的範圍。繁忙的商業街記錄的罪案會比寧靜的住宅街多，所以請把數字當作比較不同地區的參考，而不是某條街的保證。</p>
+${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath('/best/safest-towns-in-' + t.county)}">${esc(D.countyName)} 最安全市鎮排名</a></p>${zhStamp(D)}`;
+  return layout({
+    lang: 'zh', title: t.name + ' 治安：12 個月錄得 ' + num(c.total) + ' 宗罪案｜Nest UK',
+    desc: t.name + '（' + zhCountyIn(D) + '）過去 12 個月錄得 ' + num(c.total) + ' 宗警方記錄罪案，附每月走勢及罪案類型。最多的類別：' + zhCat(cats[0][0]) + '。',
+    path: zhPath(tp) + '/crime', h1: t.name + ' 治安及罪案數字', body, noindex: !t.indexable,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)], ['罪案', zhPath(tp) + '/crime']],
+  });
+}
+function zhSchoolTable(list) {
+  if (!list.length) return '<p>英國教育部資料中，附近沒有找到公立學校。</p>';
+  return `<table><tr><th>學校</th><th class="n">距離</th></tr>${list.map(x => `<tr><td><a href="${gias(x.urn)}" rel="nofollow noopener">${esc(x.name)}</a>${x.faith ? ' <span class="mut">（宗教學校）</span>' : ''}${x.all ? ' <span class="mut">（一條龍學校）</span>' : ''}</td><td class="n">${zhMiles(x.d)} · ${zhWalk(x.d)}</td></tr>`).join('')}</table>`;
+}
+function zhSchoolsPage(t, D) {
+  const s = t.schools, cn = zhCounty(D), tp = townPath(t);
+  const body = `<p>${esc(zhSchoolSentence(t))}</p>
+<h2>最近的公立小學（state primary）</h2>${zhSchoolTable(s.nearestPrimary)}
+<h2>最近的公立中學（state secondary）</h2>${zhSchoolTable(s.nearestSecondary)}
+<p>2 英里內有 ${s.independent2mi} 間私立（independent，需繳學費）學校，不計入上面的數字。</p>
+<h2>如何解讀</h2><p>學校類別來自英國教育部登記冊（GIAS），所以 academy 及 free school 都算公立學校。距離是由市中心起計的直線距離；學校的入學名額分配以學區及入學準則為準，並非只看距離，請向學校及當地議會查詢。</p>
+${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a></p>${zhStamp(D)}`;
+  return layout({
+    lang: 'zh', title: t.name + ' 附近學校：公立小學及中學一覽｜Nest UK',
+    desc: t.name + '（' + zhCountyIn(D) + '）1 英里內有 ' + s.primary1mi + ' 間公立小學、3 英里內有 ' + s.secondary3mi + ' 間公立中學，附距離及英國教育部資料連結。',
+    path: zhPath(tp) + '/schools', h1: t.name + ' 附近學校', body, noindex: !t.indexable,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)], ['學校', zhPath(tp) + '/schools']],
+  });
+}
+function zhRankingTable(D) {
+  return `<table><tr><th class="n">#</th><th>市鎮</th><th class="n">12 個月罪案宗數</th><th class="n">每月</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td></tr>`).join('')}</table>`;
+}
+function zhCountyPage(D) {
+  const cn = zhCounty(D);
+  const body = `<p>我們比較 ${D.count} 個 ${esc(D.countyName)} 市鎮，以截至 ${esc(zhMonth(D.latest))} 的 12 個月內、市中心 ${D.radiusM} 米範圍的警方記錄罪案宗數作比較，並列出每個市鎮附近的學校情況。市鎮中位數為 ${num(D.median)} 宗。適合計劃移居英國（包括 BNO 簽證持有人）、正在比較 ${esc(D.countyName)} 不同市鎮的家庭參考。</p>
+<p><a href="${zhPath('/best/safest-towns-in-' + D.county)}">查看完整排名：${esc(D.countyName)} 最安全市鎮 →</a></p>
+<h2>${esc(D.countyName)} 所有市鎮</h2><ul>${D.ranked.map(t => `<li><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></li>`).join('')}</ul>${zhStamp(D)}`;
+  return layout({
+    lang: 'zh', title: cn + '市鎮比較：治安及學校｜Nest UK',
+    desc: '比較 ' + D.count + ' 個 ' + D.countyName + ' 市鎮的警方記錄罪案及附近公立學校，資料來自 Police.uk 及英國教育部，每月更新。',
+    path: zhPath('/uk/' + D.county), h1: cn + '市鎮比較：治安及學校', body,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + D.county)]],
+  });
+}
+function zhRankingPage(D) {
+  const first = D.ranked[0], last = D.ranked[D.ranked.length - 1], cn = zhCounty(D);
+  const body = `<p>在我們比較的 ${D.count} 個 ${esc(D.countyName)} 市鎮中，${esc(first.name)} 記錄的罪案最少（12 個月 ${num(first.crime.total)} 宗），${esc(last.name)} 最多（${num(last.crime.total)} 宗）。數字為截至 ${esc(zhMonth(D.latest))} 的 12 個月內，各市鎮中心 ${D.radiusM} 米範圍的警方記錄罪案宗數。</p>
+${zhRankingTable(D)}<p class="mut">這是市中心附近的罪案宗數，不是按居民人口計算的比率。有商店、車站及夜生活的市中心，記錄的罪案會比周邊住宅區多，所以排名較後的市鎮，其住宅街道不一定較不安全。請把排名當作起點，再查看確實地址。</p>${zhStamp(D)}`;
+  return layout({
+    lang: 'zh', title: cn + '最安全市鎮排名（按警方記錄罪案）｜Nest UK',
+    desc: D.count + ' 個 ' + D.countyName + ' 市鎮過去 12 個月警方記錄罪案排名：' + first.name + ' 最少，' + last.name + ' 最多。',
+    path: zhPath('/best/safest-towns-in-' + D.county), h1: cn + '最安全市鎮排名', body,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + D.county)], ['最安全市鎮', zhPath('/best/safest-towns-in-' + D.county)]],
+  });
+}
+function routeZh(p, D) {
+  const q = p.slice(3) || '/';
+  if (q === '/uk/' + D.county) return zhCountyPage(D);
+  if (q === '/best/safest-towns-in-' + D.county) return zhRankingPage(D);
+  const m = q.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools))?$'));
+  if (!m) return null;
+  const t = D.bySlug.get(m[1]);
+  if (!t || !t.crime) return null;
+  return m[2] === 'crime' ? zhCrimePage(t, D) : m[2] === 'schools' ? zhSchoolsPage(t, D) : zhTownPage(t, D);
+}
+
 export function sitemapXml(D) {
-  const urls = ['/', '/uk/' + D.county, '/best/safest-towns-in-' + D.county];
+  const urls = ['/uk/' + D.county, '/best/safest-towns-in-' + D.county];
   D.ranked.forEach(t => { urls.push(townPath(t), townPath(t) + '/crime', townPath(t) + '/schools'); });
   const lm = D.built || new Date().toISOString().slice(0, 10);
-  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(u => '  <url><loc>' + SITE + u + '</loc><lastmod>' + lm + '</lastmod></url>').join('\n') + '\n</urlset>\n';
+  const alt = u => '<xhtml:link rel="alternate" hreflang="en-GB" href="' + SITE + u + '"/><xhtml:link rel="alternate" hreflang="zh-HK" href="' + SITE + '/zh' + u + '"/><xhtml:link rel="alternate" hreflang="x-default" href="' + SITE + u + '"/>';
+  const entry = (loc, u, withAlt) => '  <url><loc>' + SITE + loc + '</loc><lastmod>' + lm + '</lastmod>' + (withAlt ? alt(u) : '') + '</url>';
+  const lines = ['  <url><loc>' + SITE + '/</loc><lastmod>' + lm + '</lastmod></url>'];
+  urls.forEach(u => { lines.push(entry(u, u, true)); lines.push(entry('/zh' + u, u, true)); });
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + lines.join('\n') + '\n</urlset>\n';
 }
 const staticSitemap = () => '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>' + SITE + '/</loc></url>\n</urlset>\n';
 
@@ -243,6 +401,7 @@ const html = (body, status = 200) => new Response(body, { status, headers: { 'Co
 
 export function route(pathname, D) {
   const p = pathname.replace(/\/+$/, '') || '/';
+  if (p.startsWith('/zh/')) return routeZh(p, D);
   if (p === '/uk/' + D.county) return countyPage(D);
   if (p === '/best/safest-towns-in-' + D.county) return rankingPage(D);
   const m = p.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools))?$'));
