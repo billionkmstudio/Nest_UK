@@ -210,6 +210,24 @@ input[type=text],select{width:100%;height:46px;border:1px solid var(--line);bord
   body.collapsed .sbar .se{flex:none;color:var(--accent);font:700 13px var(--body)}
 }
 
+/* phones and tablets: a short map strip so the results stay in view; "Expand map" opens it fully */
+.mapsize{display:none}
+@media (max-width:899px){
+  #mapcard:not(.big) .mapbox{height:230px;min-height:0}
+  #mapcard:not(.big) .uk,#mapcard:not(.big) .mapinfo,#mapcard:not(.big) .maphead h3{display:none}
+  #mapcard:not(.big) .maphead{margin-bottom:8px}
+  .mapsize{display:block;position:absolute;left:10px;bottom:10px;z-index:700;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 13px var(--body);box-shadow:0 1px 6px rgba(0,0,0,.3);cursor:pointer}
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}   /* keep the last card clear of the browser's bottom bar */
+}
+
+/* recent searches and share link */
+.recent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--muted)}
+.recent button{background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 10px;font:500 13px var(--body);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent .clr{background:none;border:0;color:var(--muted);text-decoration:underline;padding:5px 4px}
+.sharebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--muted)}
+.sharebar[hidden]{display:none}
+.sharebar button{height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 13px var(--body);cursor:pointer}
+
 /* intro */
 .get{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 .get div{border-top:2px solid var(--line);padding-top:10px}
@@ -415,6 +433,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
           <button class="btn" type="submit" id="go" data-i18n="go"></button>
           <div class="ex"><span data-i18n="tryEx"></span><button type="button" id="ex1">M13 9WL vs RG6 6UR</button></div>
         </div>
+        <div class="recent" id="recent" hidden></div>
         <p class="msg" id="msg" role="alert" hidden></p>
       </form>
     </section>
@@ -448,6 +467,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
         <div id="map3d" role="img" aria-label="3D map"></div>
         <div class="uk" aria-hidden="true"><div id="ukmap"></div><small id="ukcap"></small></div>
         <div class="mapnote" id="mapnote" role="status"></div>
+        <button type="button" class="mapsize" id="mapSize" aria-pressed="false"></button>
       </div>
       <div class="mapinfo">
       <p class="loc" id="loc"></p>
@@ -461,6 +481,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
     </div>
 
     <div class="colR">
+    <div class="sharebar" id="sharebar" hidden><button type="button" id="shareBtn"></button><span id="shareNote" role="status"></span></div>
     <div class="topics" id="topics" role="tablist" hidden></div>
     <div class="stack" id="results"></div>
 
@@ -502,7 +523,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.25';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.27';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -875,7 +896,7 @@ const T = {
     addrLabel:'Address or postcode', ph:'e.g. M13 9WL or 10 High Street, Reading', addMore:'+ Add another address',
     radiusLabel:'Crime area around the address', r300:'300 m · 4 min walk', r600:'600 m · 8 min walk', r1609:'1 mile',
     profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use transit',
-    go:'Check these addresses', tryEx:'Try an example:', editSearch:'Edit search',
+    go:'Check these addresses', tryEx:'Try an example:', recent:'Recent:', recent_clear:'Clear', share_btn:'Share this search', share_copied:'Link copied', share_manual:'Copy this link:', editSearch:'Edit search',
     needAddr:'Enter at least one address or postcode.',
     placeHint:'Place-name search: results are centred on the middle of this area. For exact answers, search a street address or postcode.',
     g_safety:'Safety', g_safety_d:'12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.',
@@ -894,7 +915,7 @@ const T = {
     errGeo:'The address lookup service did not respond. Try again in a moment.',
     unavailable:'Could not load this data.', retry:'Try again', naShort:'n/a', none:'None',
     cmpTitle:'At a glance', cmpOverall:'Overall crime risk score (0–100, lower = fewer reports)', cmpTotal:'Reported crimes a year', cmpTrend:'Recent trend', cmpTop:'Most common', best:'best', metric:'Measure',
-    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Fetching data… {s}s. This can take up to a minute or longer because the public map servers can be slow. Results appear as each part arrives, so please wait.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
+    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', map_expand:'Expand map', map_collapse:'Shrink map', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Fetching data… {s}s. This can take up to a minute or longer because the public map servers can be slow. Results appear as each part arrives, so please wait.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
     within:'within {r}', mWithin:'{r} m', mile:'1 mile',
     headline:'{total} reported crimes a year within {r}. Most common: {cat} ({pct}%). Highest risk area: {grp} ({score}).',
     perYear:'{n} {u} a year',
@@ -985,7 +1006,7 @@ const T = {
     addrLabel:'地址或郵編', ph:'例如 M13 9WL 或 10 High Street, Reading', addMore:'+ 加多一個地址',
     radiusLabel:'罪案統計範圍', r300:'300 米 · 步行約 4 分鐘', r600:'600 米 · 步行約 8 分鐘', r1609:'1 英里',
     profileLabel:'罪案分數側重', p_balanced:'平衡', p_driver:'我揸車', p_family:'一家大細', p_walker:'我多數行路或搭車',
-    go:'開始分析', tryEx:'試用例子：', editSearch:'修改搜尋',
+    go:'開始分析', tryEx:'試用例子：', recent:'最近搜尋：', recent_clear:'清除', share_btn:'分享呢個搜尋', share_copied:'已複製連結', share_manual:'請複製呢條連結：', editSearch:'修改搜尋',
     needAddr:'請至少輸入一個地址或郵編。',
     placeHint:'地名搜尋：結果以該區中心計算。要更準確，請輸入街道地址或郵編。',
     g_safety:'治安', g_safety_d:'最近 12 個月的已報案罪案，按爆竊、車輛、人身安全和滋擾評分。',
@@ -1004,7 +1025,7 @@ const T = {
     errGeo:'地址查詢服務沒有回應，請稍後再試。',
     unavailable:'載入不到這項資料。', retry:'再試一次', naShort:'不適用', none:'沒有',
     cmpTitle:'一覽', cmpOverall:'罪案整體風險分數（0–100，越低代表罪案率越低）', cmpTotal:'每年罪案數目', cmpTrend:'近期趨勢', cmpTop:'最常見', best:'最佳', metric:'項目',
-    risk:'{b}風險', b0:'極低', b1:'低', b2:'中等', b3:'高', b4:'極高', btn_layers:'圖層', fl_gov:'到 GOV.UK 查詢 ↗', fl_gov_note:'長期水浸風險暫不在此顯示，請到英國政府官方水浸查詢網站查看這個地址。', side_hide:'收起側欄', side_show:'展開側欄', st_wait:'正在查詢資料…（{s} 秒）。公開地圖伺服器有時較慢，最長可能需要一分鐘或以上。每部分資料一到就會顯示出來，請稍候，不是死機。', scoreHint:'分數滿分 100，數字越低，代表報案率（罪案率）越低。', base_map:'地圖', base_sat:'衛星', theme_to_dark:'切換夜間模式', theme_to_light:'切換日間模式', sat_credit:'影像 © Esri、Maxar、Earthstar Geographics', rl0:'風險極低', rl1:'風險低', rl2:'風險中等', rl3:'報案偏多', rl4:'報案較多', crimeCtx:'分數是根據該區警方的報案數字計算。鬧市和市中心人多、商店多、夜生活多，報案數字幾乎必然較高，不代表一般住宅街道的日常生活就不安全。', mapFoot:'地圖資料來自 OpenStreetMap 義工，新建屋苑可能還未顯示樓宇或商店。',
+    risk:'{b}風險', b0:'極低', b1:'低', b2:'中等', b3:'高', b4:'極高', btn_layers:'圖層', map_expand:'放大地圖', map_collapse:'縮細地圖', fl_gov:'到 GOV.UK 查詢 ↗', fl_gov_note:'長期水浸風險暫不在此顯示，請到英國政府官方水浸查詢網站查看這個地址。', side_hide:'收起側欄', side_show:'展開側欄', st_wait:'正在查詢資料…（{s} 秒）。公開地圖伺服器有時較慢，最長可能需要一分鐘或以上。每部分資料一到就會顯示出來，請稍候，不是死機。', scoreHint:'分數滿分 100，數字越低，代表報案率（罪案率）越低。', base_map:'地圖', base_sat:'衛星', theme_to_dark:'切換夜間模式', theme_to_light:'切換日間模式', sat_credit:'影像 © Esri、Maxar、Earthstar Geographics', rl0:'風險極低', rl1:'風險低', rl2:'風險中等', rl3:'報案偏多', rl4:'報案較多', crimeCtx:'分數是根據該區警方的報案數字計算。鬧市和市中心人多、商店多、夜生活多，報案數字幾乎必然較高，不代表一般住宅街道的日常生活就不安全。', mapFoot:'地圖資料來自 OpenStreetMap 義工，新建屋苑可能還未顯示樓宇或商店。',
     within:'{r}範圍內', mWithin:'{r} 米', mile:'1 英里',
     headline:'{r}每年有 {total} 宗已報案罪案。最常見：{cat}（{pct}%）。風險最高的範疇：{grp}（{score}）。',
     perYear:'每年 {n} {u}',
@@ -1403,7 +1424,7 @@ async function runModule(it, mod){
     else if (mod === 'cars') await loadCars(it);
     else if (mod === 'weather') await loadWeather(it);
     if (it.mod[mod] === 'run') it.mod[mod] = 'ok';
-  }catch(e){ it.mod[mod] = 'err'; it.errs[mod] = errMsg(e); }
+  }catch(e){ it.mod[mod] = 'err'; it.errs[mod] = errMsg(e); track('mod_fail', mod); }
   it.ver = (it.ver || 0) + 1;
   renderStatus();
   if (state.running) scheduleRender();
@@ -1418,11 +1439,13 @@ async function run(){
   if (!qs.length){ setMsg(t('needAddr')); return; }
   setMsg('');
   collapseSearch(qs);
+  recentPut(qs); track('search', state.lang, qs.length, state.radius);
   state.running = true; $('#go').disabled = true;
   state.t0 = Date.now();
   clearInterval(state.tick); state.tick = setInterval(() => { if (state.running) renderStatus(); }, 1000);
   document.body.classList.remove('sidehide');
   state.items = qs.map((q, i) => ({q, i, status:'geocoding', mod:{}, errs:{}}));
+  syncUrl(); $('#sharebar').hidden = false;
   state.digests = [];
   state.topic = 'overview'; setTopicLayers('overview');
   $('#results').innerHTML = ''; $('#topics').hidden = true; if (!canLanding()) $('#mapcard').hidden = true; $('#more').hidden = true; if (!canLanding()) $('#intro').hidden = true;
@@ -1431,7 +1454,7 @@ async function run(){
   const months = monthList(latest, 12);
   for (const it of state.items){
     try{ it.geo = await geocode(it.q); it.status = 'ready'; it.months = months; MODS.forEach(m => it.mod[m] = 'run'); }
-    catch(e){ it.status = 'error'; it.error = e.message === 'scot' ? t('errScot') : e.message === 'notfound' ? t('errNotFound') : t('errGeo'); }
+    catch(e){ track('geo_fail', /^[a-z]{1,12}$/.test(e.message) ? e.message : 'other'); it.status = 'error'; it.error = e.message === 'scot' ? t('errScot') : e.message === 'notfound' ? t('errNotFound') : t('errGeo'); }
     renderStatus();
     if (it.status === 'ready'){
       const firstReady = state.items.find(x => x.status === 'ready');
@@ -2351,6 +2374,7 @@ function draw3d(sel, sc, ds, fitKey){
   }
 }
 async function setView(v){
+  if (v !== state.view) track('view', v);
   state.view = v;
   $('#v2d').setAttribute('aria-pressed', v === '2d');
   $('#v3d').setAttribute('aria-pressed', v === '3d');
@@ -2438,8 +2462,76 @@ function renderToday(){
   try{ txt = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', weekday:'short', day:'numeric', month:'short', year:'numeric'}); }catch(e){}
   ['today', 'todayM'].forEach(id => { const el = $('#' + id); if (el) el.textContent = txt; });
 }
+/* ---------- share link and recent searches ---------- */
+const RECENT_KEY = 'nest-recent1';
+/* anonymous usage counts (no cookies, no ids, no addresses): which features are used, where searches fail */
+function track(e, v, n, r){
+  try{
+    if (apiBase() === null || /^(localhost|127\.|\[?::1)/.test(location.hostname)) return;
+    if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
+    const body = JSON.stringify({e, v:v || '', n:n || 0, r:r || 0});
+    if (navigator.sendBeacon) navigator.sendBeacon('/api/e', new Blob([body], {type:'text/plain'}));
+    else fetch('/api/e', {method:'POST', body, keepalive:true, headers:{'content-type':'text/plain'}}).catch(() => {});
+  }catch(err){}
+}
+function currentQueries(){ return state.items.map(i => i.q).filter(Boolean); }
+function shareUrl(qs){
+  const u = new URL('/', location.href);
+  qs.forEach(q => u.searchParams.append('q', q));
+  if (state.radius !== 600) u.searchParams.set('r', String(state.radius));
+  if (state.lang === 'zh') u.searchParams.set('lang', 'zh');
+  return u.toString();
+}
+function syncUrl(){
+  const qs = currentQueries(); if (!qs.length) return;
+  state.shareUrl = shareUrl(qs);
+  try{ history.replaceState(null, '', state.shareUrl); }catch(e){}
+}
+function recentGet(){
+  try{ const a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(a) ? a.filter(x => Array.isArray(x) && x.length && x.every(v => typeof v === 'string')).slice(0, 5) : []; }
+  catch(e){ return []; }
+}
+function recentPut(qs){
+  try{
+    const key = qs.join('|').toLowerCase();
+    const a = recentGet().filter(x => x.join('|').toLowerCase() !== key); a.unshift(qs);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(a.slice(0, 5)));
+  }catch(e){}
+  renderRecent();
+}
+function renderRecent(){
+  const box = $('#recent'); if (!box) return;
+  const a = recentGet(); box.hidden = !a.length;
+  box.innerHTML = a.length ? '<span>' + esc(t('recent')) + '</span>' + a.map((qs, i) => '<button type="button" data-ri="' + i + '">' + esc(qs.join(' vs ')) + '</button>').join('') + '<button type="button" class="clr" data-clr="1">' + esc(t('recent_clear')) + '</button>' : '';
+}
+function fillQueries(qs){
+  [0, 1, 2].forEach(i => { $('#q' + i).value = qs[i] || ''; });
+  ['row1', 'row2'].forEach((id, i) => { $('#' + id).hidden = !qs[i + 1]; });
+  $('#addMore').hidden = !!qs[2];
+}
+async function shareSearch(){
+  track('share');
+  syncUrl(); const url = state.shareUrl || location.href, note = $('#shareNote');
+  try{ if (navigator.share){ await navigator.share({title:'Nest UK', url}); return; } }catch(e){ if (e && e.name === 'AbortError') return; }
+  try{ await navigator.clipboard.writeText(url); note.textContent = t('share_copied'); }
+  catch(e){ note.textContent = t('share_manual') + ' ' + url; }
+  setTimeout(() => { note.textContent = ''; }, 6000);
+}
+function mapSizeLabel(){
+  const b = $('#mapSize'), c = $('#mapcard'); if (!b || !c) return;
+  const big = c.classList.contains('big');
+  b.textContent = t(big ? 'map_collapse' : 'map_expand'); b.setAttribute('aria-pressed', String(big));
+}
+function toggleMapSize(){
+  const c = $('#mapcard'); c.classList.toggle('big');
+  mapSizeLabel();
+  setTimeout(relayoutMaps, 60);
+  if (c.classList.contains('big')) track('map_expand');
+  if (c.classList.contains('big')) try{ c.scrollIntoView({block:'start', behavior:'smooth'}); }catch(e){}
+}
 function applyLang(){
-  renderToday();
+  renderToday(); mapSizeLabel(); renderRecent();
+  { const sb = $('#shareBtn'); if (sb) sb.textContent = t('share_btn'); }
   document.documentElement.lang = state.lang === 'zh' ? 'zh-HK' : 'en';
   $$('[data-i18n]').forEach(n => n.textContent = t(n.dataset.i18n));
   $$('[data-i18n-ph]').forEach(n => n.placeholder = t(n.dataset.i18nPh));
@@ -2453,7 +2545,7 @@ function applyLang(){
 function setLang(l){
   state.lang = l;
   try{ localStorage.setItem('nest-lang', l); }catch(e){}
-  applyLang();
+  applyLang(); syncUrl(); track('lang', l);
 }
 function sideLabel(){
   const hid = document.body.classList.contains('sidehide'), b = $('#sideBtn');
@@ -2482,10 +2574,24 @@ function applyTheme(th){
   $('#form').addEventListener('submit', e => { e.preventDefault(); run(); });
   setInterval(renderToday, 60000);   // rolls over at midnight if the page is left open
   try{   // links from the area pages: /?q=Camberley, Surrey
-    const q0 = new URLSearchParams(location.search).get('q');
-    if (q0 && q0.trim()){ $('#q0').value = q0.trim().slice(0, 120); setTimeout(run, 0); }
+    const sp = new URLSearchParams(location.search);
+    const qs0 = sp.getAll('q').map(v => v.trim().slice(0, 120)).filter(Boolean).slice(0, 3);
+    if (qs0.length){
+      const r0 = sp.get('r'), rr = r0 && $('input[name=radius][value="' + r0.replace(/[^0-9]/g, '') + '"]');
+      if (rr){ rr.checked = true; state.radius = +rr.value; }
+      const lp = sp.get('lang'); if (lp === 'zh' || lp === 'en'){ state.lang = lp; applyLang(); }
+      fillQueries(qs0); setTimeout(run, 0);
+    }
   }catch(e){}
   $('#sbar').onclick = () => expandSearch(true);
+  $('#mapSize').onclick = toggleMapSize;
+  $('#shareBtn').onclick = shareSearch;
+  $('#recent').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.clr){ try{ localStorage.removeItem(RECENT_KEY); }catch(er){} renderRecent(); return; }
+    const qs = recentGet()[+b.dataset.ri]; if (qs){ track('recent'); fillQueries(qs); run(); }
+  });
+  renderRecent();
   $('#addMore').onclick = () => {
     const r = ['row1', 'row2'].map(id => $('#' + id)).find(n => n.hidden);
     if (r){ r.hidden = false; $('input', r).focus(); }
@@ -2499,11 +2605,11 @@ function applyTheme(th){
     $('#q0').value = 'M13 9WL'; $('#q1').value = 'RG6 6UR';
     $('#row1').hidden = false;
   };
-  $$('input[name=radius]').forEach(r => r.onchange = () => { state.radius = +r.value; if (!state.running && state.items.length) render(); });
+  $$('input[name=radius]').forEach(r => r.onchange = () => { state.radius = +r.value; syncUrl(); if (!state.running && state.items.length) render(); });
   $('#profile').onchange = e => { state.profile = e.target.value; if (!state.running && state.items.length) render(); };
   $('#topics').addEventListener('click', e => {
     const b = e.target.closest('button[data-topic]'); if (!b) return;
-    state.topic = b.dataset.topic; setTopicLayers(state.topic); render();
+    state.topic = b.dataset.topic; setTopicLayers(state.topic); track('topic', state.topic); render();
   });
   $('#maptabs').addEventListener('click', e => {
     const b = e.target.closest('button[data-i]'); if (!b) return;
@@ -2514,7 +2620,7 @@ function applyTheme(th){
     const b = e.target.closest('button[data-layer]'); if (!b) return;
     const k = b.dataset.layer;
     if (b.disabled || (k === 'indep' && state.stateOnly)) return;
-    if (state.layers.has(k)) state.layers.delete(k); else state.layers.add(k);
+    if (state.layers.has(k)) state.layers.delete(k); else { state.layers.add(k); track('layer', k); }
     refreshMap();
   });
   $('#themeBtn').onclick = () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; try{ localStorage.setItem('nest-theme', state.theme); }catch(e){} applyTheme(state.theme); };

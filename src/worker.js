@@ -7,12 +7,14 @@
 //   /api/flood-warnings  live flood warnings (Environment Agency), edge-cached
 //   /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas.json (src/seo.js)
 //   /api/weather  3-day forecast (MET Norway), edge-cached
+//   /api/e  anonymous usage counts (Workers Analytics Engine, binding EVENTS), see src/events.js
 //   /api/overpass?kind=edu|extra|life|roads|bus|cars  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
 
 import Q from '../public/queries.js';
 import { seoHandler } from './seo.js';
 import { summariseForecast } from './weather.js';
+import { eventPoint } from './events.js';
 
 const json = (obj, status = 200, extra = {}) =>
   new Response(JSON.stringify(obj), {
@@ -21,6 +23,16 @@ const json = (obj, status = 200, extra = {}) =>
   });
 
 const isTimeout = e => e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+
+/* ============================== USAGE EVENTS ============================== */
+async function events(request, env) {
+  if (request.method !== 'POST') return new Response(null, { status: 405, headers: { Allow: 'POST' } });
+  let raw = '';
+  try { raw = await request.text(); } catch { /* ignore */ }
+  const pt = eventPoint(raw, request.cf && request.cf.country);
+  if (pt && env.EVENTS) { try { env.EVENTS.writeDataPoint(pt); } catch { /* counting is best effort */ } }
+  return new Response(null, { status: 204 });
+}
 
 /* ============================== BUSES ============================== */
 const MAX_SPAN = 0.15;          // degrees; stops people pulling the whole country
@@ -520,6 +532,7 @@ export default {
     if (url.pathname === '/api/crime-last-updated') return crimeLastUpdated(request, env, ctx);
     if (url.pathname === '/api/flood-warnings') return floodWarnings(request, env, ctx, url);
     if (url.pathname === '/api/weather') return weather(request, env, ctx, url);
+    if (url.pathname === '/api/e') return events(request, env);
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
