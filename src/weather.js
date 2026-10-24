@@ -1,6 +1,6 @@
 // Turns a MET Norway Locationforecast reply into per-day summaries (London dates).
 
-const WEATHER_DAYS = 3;                         // today and the next two days
+const WEATHER_DAYS = 4;                         // today and the next three days
 const londonDate = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
 const londonHour = ms => +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', hour12: false }).format(new Date(ms)) % 24;
 
