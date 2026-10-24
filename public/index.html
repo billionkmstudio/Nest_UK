@@ -95,7 +95,8 @@ a{color:var(--accent)}
 /* theme / base map / wide layout */
 .tools{display:flex;align-items:center;gap:8px;flex:none}
 .today{font-size:13px;color:var(--muted);white-space:nowrap;margin-right:4px}
-@media(max-width:700px){.today{display:none}}
+.brand .todaym{display:none;color:var(--ink);font-weight:600}
+@media(max-width:700px){.today{display:none}.brand .sub{display:none}.brand .todaym{display:block}}
 .wx{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:14px}
 .wxd{background:var(--surface-2);border-radius:10px;padding:12px;min-width:0}
 .wxd small{display:block;color:var(--muted);font-size:12px}
@@ -374,7 +375,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
   <header class="top">
     <a class="brand" href="/" aria-label="Nest UK – home">
       <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11.5 12 4l8.5 7.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></svg></div>
-      <div><b>Nest UK</b><small data-i18n="brandSub">UK area explorer</small></div>
+      <div><b>Nest UK</b><small class="sub" data-i18n="brandSub">UK area explorer</small><small class="todaym" id="todayM"></small></div>
     </a>
     <div class="tools"><span class="today" id="today" aria-live="off"></span><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode"></button><div class="lang" role="group" aria-label="Language">
       <button type="button" id="lang-en" aria-pressed="true">EN</button>
@@ -501,7 +502,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.24';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.25';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -2433,10 +2434,9 @@ function refreshMap(){
 
 /* ---------- ui wiring ---------- */
 function renderToday(){
-  const el = $('#today'); if (!el) return;
-  try{
-    el.textContent = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', weekday:'short', day:'numeric', month:'short', year:'numeric'});
-  }catch(e){ el.textContent = ''; }
+  let txt = '';
+  try{ txt = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', weekday:'short', day:'numeric', month:'short', year:'numeric'}); }catch(e){}
+  ['today', 'todayM'].forEach(id => { const el = $('#' + id); if (el) el.textContent = txt; });
 }
 function applyLang(){
   renderToday();
