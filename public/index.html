@@ -94,6 +94,15 @@ a{color:var(--accent)}
 
 /* theme / base map / wide layout */
 .tools{display:flex;align-items:center;gap:8px;flex:none}
+.today{font-size:13px;color:var(--muted);white-space:nowrap;margin-right:4px}
+@media(max-width:700px){.today{display:none}}
+.wx{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:14px}
+.wxd{background:var(--surface-2);border-radius:10px;padding:12px;min-width:0}
+.wxd small{display:block;color:var(--muted);font-size:12px}
+.wxd .ic{font-size:30px;line-height:1.1;margin:6px 0 2px}
+.wxd .tt{font-weight:700;font-size:20px}
+.wxd .tt i{font-style:normal;color:var(--muted);font-weight:500;font-size:15px}
+.wxd p{margin:4px 0 0;font-size:13px;color:var(--muted)}
 .themebtn{width:36px;height:34px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);cursor:pointer;font-size:16px;line-height:1;display:grid;place-items:center}
 .maptools{display:flex;gap:8px;flex-wrap:wrap}
 .tag{margin:6px 0 0;font-size:11.5px;color:var(--muted)}
@@ -367,7 +376,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
       <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11.5 12 4l8.5 7.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></svg></div>
       <div><b>Nest UK</b><small data-i18n="brandSub">UK area explorer</small></div>
     </a>
-    <div class="tools"><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode"></button><div class="lang" role="group" aria-label="Language">
+    <div class="tools"><span class="today" id="today" aria-live="off"></span><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode"></button><div class="lang" role="group" aria-label="Language">
       <button type="button" id="lang-en" aria-pressed="true">EN</button>
       <button type="button" id="lang-zh" aria-pressed="false">中文</button>
     </div></div>
@@ -492,7 +501,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.23';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.24';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -876,7 +885,7 @@ const T = {
     tab_overview:'Overview', tab_safety:'Safety', tab_flood:'Flood', tab_schools:'Schools', tab_life:'Daily life', tab_roads:'Transport', tab_housing:'Housing',
     hp_trend:'Average price, last 12 months', hp_trend_alt:'Average price from {a} ({p}) to {b} ({q})', hp_h:'House prices', hp_load:'Loading house price data…', hp_avg:'Average price (all homes)', hp_det:'Detached', hp_semi:'Semi-detached', hp_terr:'Terraced', hp_flat:'Flat / maisonette', hp_chg:'Change over 12 months', hp_month:'Latest data: {m}. Source: HM Land Registry UK House Price Index.', hp_err:'House price data could not be loaded for this area.', hp_none:'House price data needs the data service to be set up, so it is not shown here.', hp_note:'This is an average for the whole council area, so it hides big differences between streets and between cheap and expensive neighbourhoods. It is based on completed sales, not current asking prices. Use it only as a rough guide.', hp_norent:'Average rents are not shown yet.', hp_link:'UK House Price Index (HM Land Registry) ↗',
     hs_council:'Local council area', hs_h1:'Council housing and affordable housing', hs_p1:'Whether you can apply for council housing, and how long the wait is, is decided by the local council. Rules usually include residence and eligibility conditions, and these can depend on your immigration status. This tool cannot tell you if you qualify, so please check with the council.', hs_p2:'There is no free national map of where council or affordable homes are, so this tool does not show any. The links below are official.', hs_b1:'Apply for council housing (GOV.UK, England)', hs_b2:'Affordable home ownership schemes (GOV.UK, England)', hs_b3:'Find your local council', hs_b4:'Northern Ireland Housing Executive', hs_other:'Housing rules in Scotland, Wales and Northern Ireland are different from England. Please use your council or the national housing body for the correct steps.', hs_h2:'Japanese knotweed', hs_p3:'Japanese knotweed is an invasive plant that is hard to remove and can affect mortgages and insurance. This tool has no knotweed map, because there is no free official one. When buying, ask the seller about it (the standard property information form has a knotweed question) and ask your surveyor to look for it.', hs_b5:'Japanese knotweed guidance (GOV.UK)',
-    st_crime:'Crime', st_flood:'Flood', st_places:'Places', st_roads:'Roads', st_bus:'Buses',
+    st_crime:'Crime', st_flood:'Flood', st_places:'Places', st_roads:'Roads', st_bus:'Buses', st_cars:'Fuel & EV', st_weather:'Weather',
     finding:'Finding the location…',
     errNotFound:'We could not find that address. Try the postcode instead.',
     errScot:'Police Scotland data is not in the police.uk open data. This tool covers England, Wales and Northern Ireland.',
@@ -941,6 +950,16 @@ const T = {
     lgrp_school:'Schools', lgrp_transport:'Transport', lgrp_life:'Daily life', lgrp_safety:'Safety',
     lg_uni:'University / college', lg_aroad:'Other A-road', lg_crime:'Crime dots', lg_cafe:'Cafés & pubs', lg_busstop:'Bus stops', lg_busroute:'Bus routes', lg_buslive:'Live buses', live_load:'Loading live buses…', live_n:'{n} buses moving now · updated {time}', live_none:'No live buses reported here right now (live data covers England only; some operators do not publish).', live_err:'Live bus feed unavailable ({e}).', live_note:'Positions are GPS from bus operators via the DfT Bus Open Data Service, refreshed every ~15 s. Coverage is incomplete.', live_pop:'Live bus', live_to:'to', live_out:'Live buses are available for England only.',
     nm_busstop:'Bus stop', nm_takeaway:'Takeaway', nm_pub:'Pub', nm_cafe:'Café',
+    lg_fuel:'Petrol stations', lg_ev:'EV charging', nm_fuel:'Petrol station', nm_ev:'EV charging site',
+    cars_title:'Petrol stations and EV charging', cars_nearFuel:'Nearest petrol station', cars_fuelCount:'Petrol stations within 3 miles',
+    cars_nearEv:'Nearest EV charging site', cars_evCount:'EV charging sites within 2 miles', cars_rapid:'Tagged 50 kW or faster',
+    cars_listFuel:'Nearest petrol stations', cars_listEv:'Nearest EV charging sites', cars_none:'None found in this range.',
+    cars_open247:'Open 24 hours', cars_points:'{n} points', cars_fee:'Paid',
+    cars_note:'Locations come from OpenStreetMap volunteers, so a new or closed site can be missing or wrong, and power ratings are only shown where they have been added. Fuel prices, whether a charger is working or free, and queue times are not shown. Check the operator’s app or Zap-Map before you set out.',
+    wx_title:'Weather', wx_today:'Today', wx_tomorrow:'Tomorrow', wx_rain:'Rain', wx_wind:'Wind', wx_gust:'gusts {n} mph',
+    wx_src:'Forecast: MET Norway (CC BY 4.0), updated {time}. Today shows the rest of the day.', wx_stale:'The forecast service did not answer, so this may be a little out of date.',
+    wx_clear:'Clear', wx_fair:'Mostly sunny', wx_partly:'Partly cloudy', wx_cloudy:'Cloudy', wx_fog:'Fog', wx_lightrain:'Light rain', wx_rain_c:'Rain', wx_heavyrain:'Heavy rain',
+    wx_showers:'Showers', wx_sleet:'Sleet', wx_snow:'Snow', wx_thunder:'Thunderstorms',
     bus_title:'Buses nearby', bus_nearStop:'Nearest bus stop', bus_routes:'Bus routes within about 1 km', bus_stops:'Bus stops within 800 m', bus_none:'No bus routes found in the map data here.',
     bus_note:'Routes and stops come from OpenStreetMap volunteers, so some routes may be missing or out of date. There are no timetables or live times here: check Traveline or bustimes.org, or ask the local council.',
     load3d:'Loading the 3D map…', err3d:'The 3D map could not start on this device or network. The 2D map still works.', errLeaflet:'The map library could not load. Check your connection and reload.',
@@ -976,7 +995,7 @@ const T = {
     tab_overview:'總覽', tab_safety:'治安', tab_flood:'水浸', tab_schools:'學校', tab_life:'生活配套', tab_roads:'交通', tab_housing:'房屋',
     hp_trend:'過去 12 個月平均樓價走勢', hp_trend_alt:'平均樓價由 {a}（{p}）到 {b}（{q}）', hp_h:'樓價', hp_load:'正在載入樓價資料…', hp_avg:'平均樓價（所有類型）', hp_det:'獨立屋', hp_semi:'半獨立屋', hp_terr:'排屋', hp_flat:'公寓／單位', hp_chg:'過去 12 個月變化', hp_month:'最新資料：{m}。來源：HM Land Registry（土地註冊處）UK House Price Index。', hp_err:'載入不到這個地區的樓價資料。', hp_none:'樓價資料需要設定資料服務，所以暫時不顯示。', hp_note:'這是整個議會區域的平均數，會掩蓋街道之間、平價區和貴價區之間的巨大差異。它根據已成交的個案計算，不是現時的叫價。只能當作大方向參考。', hp_norent:'暫時未有平均租金資料。', hp_link:'UK House Price Index（HM Land Registry）↗',
     hs_council:'所屬議會（地區）', hs_h1:'社會房屋（Council housing）與可負擔房屋', hs_p1:'能否申請 council housing、要輪候多久，由所屬議會決定。通常有居住和資格要求，這些要求可能與你的身份有關。這個網頁無法判斷你是否符合資格，請直接向議會查詢。', hs_p2:'英國沒有免費的全國地圖可以顯示 council 或可負擔房屋在哪裡，所以這裡不顯示位置。下面的連結都是官方頁面。', hs_b1:'申請 council housing（GOV.UK，英格蘭）', hs_b2:'可負擔購屋計劃（GOV.UK，英格蘭）', hs_b3:'查詢你所屬的議會', hs_b4:'北愛爾蘭房屋署（NI Housing Executive）', hs_other:'蘇格蘭、威爾斯和北愛爾蘭的房屋制度與英格蘭不同，請向當地議會或全國房屋機構查詢正確步驟。', hs_h2:'日本虎杖（Japanese knotweed）', hs_p3:'日本虎杖是一種很難清除的入侵植物，可能影響按揭和保險。這個網頁沒有虎杖地圖，因為沒有免費的官方資料。買樓時請向賣家查詢（標準的物業資料表格有虎杖的問題），並請驗樓師留意。', hs_b5:'日本虎杖指引（GOV.UK）',
-    st_crime:'罪案', st_flood:'水浸', st_places:'地點', st_roads:'道路', st_bus:'巴士',
+    st_crime:'罪案', st_flood:'水浸', st_places:'地點', st_roads:'道路', st_bus:'巴士', st_cars:'油站及充電站', st_weather:'天氣',
     finding:'正在搵地點…',
     errNotFound:'搵唔到這個地址，請改用郵編試試。',
     errScot:'police.uk 開放資料不包括蘇格蘭警方的數據，本工具只涵蓋英格蘭、威爾斯及北愛爾蘭。',
@@ -1036,6 +1055,16 @@ const T = {
     lgrp_school:'學校', lgrp_transport:'交通', lgrp_life:'生活', lgrp_safety:'治安',
     lg_uni:'大學／學院', lg_aroad:'其他 A 字頭公路', lg_crime:'罪案點', lg_cafe:'咖啡店及酒吧', lg_busstop:'巴士站', lg_busroute:'巴士路線', lg_buslive:'實時巴士', live_load:'正在載入實時巴士…', live_n:'現時有 {n} 輛巴士行駛中 · 更新於 {time}', live_none:'此處暫時沒有實時巴士資料（實時資料只涵蓋英格蘭，部分營辦商未有提供）。', live_err:'實時巴士資料暫時無法取得（{e}）。', live_note:'位置為營辦商經英國交通部 Bus Open Data Service 提供的 GPS，約每 15 秒更新，覆蓋並不完整。', live_pop:'實時巴士', live_to:'往', live_out:'實時巴士只支援英格蘭。',
     nm_busstop:'巴士站', nm_takeaway:'外賣店', nm_pub:'酒吧', nm_cafe:'咖啡店',
+    lg_fuel:'油站', lg_ev:'電動車充電站', nm_fuel:'油站', nm_ev:'電動車充電站',
+    cars_title:'油站及電動車充電站', cars_nearFuel:'最近油站', cars_fuelCount:'3 英里內油站數目',
+    cars_nearEv:'最近電動車充電站', cars_evCount:'2 英里內充電站數目', cars_rapid:'標示 50 kW 或以上',
+    cars_listFuel:'最近油站', cars_listEv:'最近電動車充電站', cars_none:'範圍內找不到。',
+    cars_open247:'24 小時營業', cars_points:'{n} 個充電位', cars_fee:'收費',
+    cars_note:'位置來自 OpenStreetMap 志願者，新開或已結業的地點可能漏列或有誤，功率亦只在有人填寫時才顯示。這裡不顯示油價、充電站是否運作或免費，以及排隊情況。出發前請查看營運商 App 或 Zap-Map。',
+    wx_title:'天氣', wx_today:'今日', wx_tomorrow:'明日', wx_rain:'降雨', wx_wind:'風速', wx_gust:'陣風 {n} 英里/小時',
+    wx_src:'天氣預報：MET Norway（CC BY 4.0），更新時間 {time}。「今日」只顯示當天餘下時間。', wx_stale:'天氣服務暫時沒有回應，資料可能稍為過時。',
+    wx_clear:'晴朗', wx_fair:'大致晴朗', wx_partly:'部分多雲', wx_cloudy:'多雲', wx_fog:'霧', wx_lightrain:'微雨', wx_rain_c:'有雨', wx_heavyrain:'大雨',
+    wx_showers:'驟雨', wx_sleet:'雨夾雪', wx_snow:'下雪', wx_thunder:'雷暴',
     bus_title:'附近的巴士', bus_nearStop:'最近的巴士站', bus_routes:'約 1 公里內的巴士路線', bus_stops:'800 米內的巴士站', bus_none:'地圖資料裡搵唔到這附近的巴士路線。',
     bus_note:'路線和巴士站由 OpenStreetMap 志願者登記，可能有遺漏或過時。這裡沒有班次時間表或即時到站資料，請到 Traveline 或 bustimes.org 查詢，或詢問當地議會。',
     load3d:'正在載入 3D 地圖…', err3d:'這部裝置或網絡未能啟動 3D 地圖，2D 地圖仍可使用。', errLeaflet:'地圖元件載入失敗，請檢查網絡後重新整理。',
@@ -1065,7 +1094,8 @@ const LETTERS = ['A','B','C'], IDCLS = ['a','b','c'];
 const BAND_VAR = ['--good','--ok','--warn','--bad','--severe'];
 const GROUP_COLOR = {home:'#d6336c', vehicle:'#f08c00', person:'#7048e8', nuisance:'#1098ad', other:'#868e96'};
 const TOPICS = ['overview','safety','flood','schools','life','roads','housing'];
-const MODS = ['crime','flood','places','roads','bus'];
+const MODS = ['crime','flood','places','roads','bus','cars','weather'];
+const MOD_NAMES = {crime:'st_crime', flood:'st_flood', places:'st_places', roads:'st_roads', bus:'st_bus', cars:'st_cars', weather:'st_weather'};
 
 function t(key, vars){
   let s = (T[state.lang] && T[state.lang][key]) || T.en[key] || key;
@@ -1302,6 +1332,57 @@ async function loadPlaces(item){
   item.places = {data};
   item.errs.places = rs.filter(x => x.status !== 'fulfilled').map(x => errMsg(x.reason)).join(' || ');
 }
+function parseKw(v){
+  const m = String(v || '').match(/([\d.]+)\s*(kw|w)?/i);
+  if (!m) return 0;
+  let n = parseFloat(m[1]);
+  if (!isFinite(n)) return 0;
+  if ((m[2] || '').toLowerCase() === 'w' || n > 1000) n /= 1000;
+  return n;
+}
+function summariseCars(elements, geo){
+  const fuel = [], ev = [], seen = new Set();
+  elements.forEach(el => {
+    const k = el.type + el.id; if (seen.has(k)) return; seen.add(k);
+    const tg = el.tags || {};
+    if (/^(private|no|customers)$/.test(tg.access || '')) return;
+    const c = el.center || (el.lat !== undefined ? {lat:el.lat, lon:el.lon} : null);
+    if (!c) return;
+    const d = haversine(geo.lat, geo.lng, c.lat, c.lon);
+    if (tg.amenity === 'fuel'){
+      fuel.push({name:tg.name || tg.brand || tg.operator || '', brand:tg.brand || '', d, la:c.lat, ln:c.lon, h247:tg.opening_hours === '24/7'});
+    } else if (tg.amenity === 'charging_station'){
+      let kw = 0; Object.keys(tg).forEach(key => { if (/^socket:.*:output$/.test(key)) kw = Math.max(kw, parseKw(tg[key])); });
+      const cap = parseInt(tg.capacity, 10);
+      ev.push({name:tg.name || tg.operator || tg.network || tg.brand || '', operator:tg.operator || tg.network || tg.brand || '', d, la:c.lat, ln:c.lon, cap:isFinite(cap) ? cap : null, kw, fee:tg.fee === 'yes'});
+    }
+  });
+  const merge = arr => {   // charge points are often mapped one by one: join those within 40 m that share an operator
+    const out = [];
+    arr.sort((a, b) => a.d - b.d).forEach(x => {
+      const o = out.find(y => y.operator === x.operator && haversine(y.la, y.ln, x.la, x.ln) < 40);
+      if (!o){ out.push(Object.assign({}, x)); return; }
+      if (o.cap !== null && x.cap !== null) o.cap += x.cap; else if (x.cap !== null) o.cap = x.cap;
+      o.kw = Math.max(o.kw, x.kw);
+    });
+    return out;
+  };
+  const evM = merge(ev), fuelM = fuel.sort((a, b) => a.d - b.d);
+  return {fuel:fuelM, ev:evM, evRapid:evM.filter(e => e.kw >= 50).length};
+}
+async function loadCars(item){
+  const els = await ovRun(() => overpassKind('cars', item.geo.lat, item.geo.lng));
+  item.cars = {data:summariseCars(els, item.geo)};
+}
+async function loadWeather(item){
+  const AB = apiBase();
+  if (AB === null){ item.mod.weather = 'na'; return; }   // needs our Worker: the forecast service wants an identifying header the browser cannot send
+  const r = await fetchT(AB + '/api/weather?lat=' + item.geo.lat.toFixed(4) + '&lng=' + item.geo.lng.toFixed(4), null, 20000);
+  if (!r.ok) throw new Error('weather HTTP ' + r.status);
+  const j = await r.json();
+  if (!Array.isArray(j.days) || !j.days.length) throw new Error('weather empty');
+  item.weather = j;
+}
 async function loadBus(item){
   const els = await ovRun(() => overpassKind('bus', item.geo.lat, item.geo.lng));
   item.bus = {data:summariseBus(els, item.geo)};
@@ -1318,6 +1399,8 @@ async function runModule(it, mod){
     else if (mod === 'places') await loadPlaces(it);
     else if (mod === 'roads') await loadRoads(it);
     else if (mod === 'bus') await loadBus(it);
+    else if (mod === 'cars') await loadCars(it);
+    else if (mod === 'weather') await loadWeather(it);
     if (it.mod[mod] === 'run') it.mod[mod] = 'ok';
   }catch(e){ it.mod[mod] = 'err'; it.errs[mod] = errMsg(e); }
   it.ver = (it.ver || 0) + 1;
@@ -1396,7 +1479,7 @@ function renderStatus(){
   box.innerHTML = waitLine + state.items.map(it => {
     if (it.status === 'geocoding') return '<div class="st"><span class="chip ' + IDCLS[it.i] + '">' + LETTERS[it.i] + '</span><p>' + esc(t('finding')) + '</p></div>';
     if (it.status === 'error') return '<div class="st"><span class="chip ' + IDCLS[it.i] + '">' + LETTERS[it.i] + '</span><p><b>' + esc(it.q) + '</b> · ' + esc(it.error) + '</p></div>';
-    const names = {crime:'st_crime', flood:'st_flood', places:'st_places', roads:'st_roads', bus:'st_bus'};
+    const names = MOD_NAMES;
     const mods = MODS.map(m => {
       const s = it.mod[m];
       let sym = s === 'ok' ? '✓' : s === 'err' ? '✕' : s === 'na' ? '–' : '…';
@@ -1418,13 +1501,15 @@ function renderStatus(){
 function digest(item){
   const key = JSON.stringify([state.radius, state.profile, item.mod, item.crime && item.crime.done, item.ver]);
   if (item._dg && item._dg.key === key) return item._dg.d;
-  const d = {item, an:null, pl:null, flood:null, floodNA:item.mod.flood === 'na', roads:null, bus:null};
+  const d = {item, an:null, pl:null, flood:null, floodNA:item.mod.flood === 'na', roads:null, bus:null, cars:null, weather:null};
   if (item.mod.crime === 'ok') d.an = analyse({geo:item.geo, months:item.crime.months, raw:item.crime.raw, capped:item.crime.capped}, state.radius, state.profile);
   if (item.mod.places === 'ok') d.pl = placeDigest(item.places.data);
   if (d.pl){ d.pl.eduOk = item.places.data.eduOk; d.pl.extraOk = item.places.data.extraOk; d.pl.lifeOk = item.places.data.lifeOk; }
   if (item.mod.flood === 'ok') d.flood = item.flood;
   if (item.mod.roads === 'ok') d.roads = item.roads.data;
   if (item.mod.bus === 'ok') d.bus = item.bus.data;
+  if (item.mod.cars === 'ok') d.cars = item.cars.data;
+  if (item.mod.weather === 'ok') d.weather = item.weather;
   item._dg = {key, d};
   return d;
 }
@@ -1676,6 +1761,72 @@ function lifeHTML(d){
     '<ul class="notes"><li>' + esc(t('lf_note')) + '</li></ul></article>';
 }
 
+function wxInfo(sym){
+  const s = String(sym || '');
+  if (/thunder/.test(s)) return ['⛈️', 'wx_thunder'];
+  if (/snow/.test(s)) return ['🌨️', 'wx_snow'];
+  if (/sleet/.test(s)) return ['🌧️', 'wx_sleet'];
+  if (/heavyrain/.test(s)) return ['🌧️', 'wx_heavyrain'];
+  if (/showers/.test(s)) return ['🌦️', 'wx_showers'];
+  if (/lightrain/.test(s)) return ['🌦️', 'wx_lightrain'];
+  if (/rain/.test(s)) return ['🌧️', 'wx_rain_c'];
+  if (/fog/.test(s)) return ['🌫️', 'wx_fog'];
+  if (/partlycloudy/.test(s)) return ['⛅', 'wx_partly'];
+  if (/cloudy/.test(s)) return ['☁️', 'wx_cloudy'];
+  if (/fair/.test(s)) return ['🌤️', 'wx_fair'];
+  if (/clearsky/.test(s)) return ['☀️', 'wx_clear'];
+  return ['🌡️', 'wx_cloudy'];
+}
+function wxDayLabel(dateStr, i){
+  if (i === 0) return t('wx_today');
+  if (i === 1) return t('wx_tomorrow');
+  return new Date(dateStr + 'T12:00:00Z').toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'UTC', weekday:'long'});
+}
+function weatherHTML(ds){
+  return ds.filter(d => d.weather).map(d => {
+    const W = d.weather;
+    const days = W.days.map((x, i) => {
+      const inf = wxInfo(x.symbol);
+      const dateTxt = new Date(x.date + 'T12:00:00Z').toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'UTC', day:'numeric', month:'short'});
+      return '<div class="wxd"><small>' + esc(wxDayLabel(x.date, i)) + ' · ' + esc(dateTxt) + '</small><div class="ic" aria-hidden="true">' + inf[0] + '</div>' +
+        '<div>' + esc(t(inf[1])) + '</div>' +
+        '<div class="tt">' + (x.max === null ? '–' : x.max + '°') + ' <i>/ ' + (x.min === null ? '–' : x.min + '°') + 'C</i></div>' +
+        '<p>' + esc(t('wx_rain')) + ' ' + (x.rain || 0) + ' mm</p>' +
+        '<p>' + esc(t('wx_wind')) + ' ' + x.windMph + ' mph' + (x.gustMph > x.windMph + 5 ? ' · ' + esc(t('wx_gust', {n:x.gustMph})) : '') + '</p></div>';
+    }).join('');
+    let upd = '';
+    try{ if (W.updated) upd = new Date(W.updated).toLocaleTimeString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', hour:'2-digit', minute:'2-digit'}); }catch(e){}
+    return '<article class="card">' + head(d.item, t('wx_title')) + '<div class="wx">' + days + '</div>' +
+      '<ul class="notes"><li>' + esc(t('wx_src', {time:upd || '–'})) + ' <a href="https://api.met.no/doc/License" target="_blank" rel="noopener">MET Norway</a></li>' +
+      (W.stale ? '<li>' + esc(t('wx_stale')) + '</li>' : '') + '</ul></article>';
+  }).join('');
+}
+function evExtra(e){
+  const bits = [];
+  if (e.kw) bits.push(Math.round(e.kw) + ' kW');
+  if (e.cap) bits.push(t('cars_points', {n:e.cap}));
+  return bits.join(' · ');
+}
+function carsBlock(d){
+  const item = d.item, C = d.cars;
+  const head3 = '<h3 class="sec">' + esc(t('cars_title')) + '</h3>';
+  if (!C) return '<div style="margin-top:22px">' + head3 + '<p class="dir">' + (item.mod.cars === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':cars">' + esc(t('retry')) + '</button>') + '</p></div>';
+  const nf = C.fuel[0], ne = C.ev[0], MI3 = 3 * MI, MI2 = 2 * MI;
+  const fuelRow = f => '<li><span class="nm">' + esc(f.name || t('nm_fuel')) + (f.h247 ? '<span class="badge">' + esc(t('cars_open247')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(f.d)) + '</span></li>';
+  const evRow = e => '<li><span class="nm">' + esc(e.name || t('nm_ev')) + (evExtra(e) ? '<span class="badge">' + esc(evExtra(e)) + '</span>' : '') + (e.fee ? '<span class="badge">' + esc(t('cars_fee')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(e.d)) + '</span></li>';
+  const rows = (arr, fn) => arr.slice(0, 5).map(fn).join('') || '<li><span class="empty">' + esc(t('cars_none')) + '</span></li>';
+  return '<div style="margin-top:22px">' + head3 +
+    '<div class="stats" style="margin-top:0">' +
+      stat(t('cars_nearFuel'), nf ? esc(fmtDist(nf.d)) : '–', nf ? nf.name : '') +
+      stat(t('cars_fuelCount'), String(C.fuel.filter(f => f.d <= MI3).length)) +
+      stat(t('cars_nearEv'), ne ? esc(fmtDist(ne.d)) : '–', ne ? (ne.name || '') : '') +
+      stat(t('cars_evCount'), String(C.ev.filter(e => e.d <= MI2).length), t('cars_rapid') + ': ' + C.ev.filter(e => e.d <= MI2 && e.kw >= 50).length) +
+    '</div>' +
+    '<div class="cols"><div><h3 class="sec">' + esc(t('cars_listFuel')) + '</h3><ul class="plist">' + rows(C.fuel, fuelRow) + '</ul></div>' +
+    '<div><h3 class="sec">' + esc(t('cars_listEv')) + '</h3><ul class="plist">' + rows(C.ev, evRow) + '</ul></div></div>' +
+    '<ul class="notes"><li>' + esc(t('cars_note')) + '</li></ul>' +
+    '<div class="btnrow"><a href="https://www.zap-map.com/" target="_blank" rel="noopener">Zap-Map</a></div></div>';
+}
 function roadsHTML(d){
   const item = d.item, R = d.roads, p = d.pl;
   if (!R) return unavailableCard(item, 'roads');
@@ -1691,6 +1842,7 @@ function roadsHTML(d){
     '<div class="stats">' + tile(t('rd_motor'), R.motorway) + tile(t('rd_trunk'), R.trunk) + tile(t('rd_primary'), R.primary) + stTile + '</div>' +
     (lines ? '<ul class="notes" style="color:var(--ink)">' + lines + '</ul>' : '') +
     (st ? '<div class="cols">' + listBlock(t('lf_listStation'), st, stationRow, 5) + '</div>' : '') +
+    carsBlock(d) +
     busBlock(d) +
     '<ul class="notes"><li>' + esc(t('rd_note')) + '</li></ul></article>';
 }
@@ -1719,13 +1871,15 @@ function failures(ds){
     if (it.mod.places === 'err' || (it.mod.places === 'ok' && it.places && !(it.places.data.eduOk && it.places.data.extraOk && it.places.data.lifeOk))) out.push({it, m:'places', why:why('places')});
     if (it.mod.roads === 'err') out.push({it, m:'roads', why:why('roads')});
     if (it.mod.bus === 'err') out.push({it, m:'bus', why:why('bus')});
+    if (it.mod.cars === 'err') out.push({it, m:'cars', why:why('cars')});
+    if (it.mod.weather === 'err') out.push({it, m:'weather', why:why('weather')});
   });
   return out;
 }
 function failbarHTML(ds){
   const f = failures(ds);
   if (!f.length) return '';
-  const names = {crime:'st_crime', flood:'st_flood', places:'st_places', roads:'st_roads', bus:'st_bus'};
+  const names = MOD_NAMES;
   return '<div class="failbar"><b>' + esc(t('failTitle')) + '</b> ' + f.map(x =>
     '<span style="display:inline-block;margin-right:12px">' + (ds.length > 1 ? LETTERS[x.it.i] + ' · ' : '') + esc(t(names[x.m])) + ' <button type="button" class="linkbtn" data-retry="' + x.it.i + ':' + x.m + '">' + esc(t('retry')) + '</button></span>').join('') +
     f.filter(x => x.why).map(x => '<span class="why">' + (ds.length > 1 ? LETTERS[x.it.i] + ' ' : '') + esc(t(names[x.m])) + ': ' + esc(x.why) + '</span>').join('') +
@@ -1776,7 +1930,9 @@ function overviewHTML(ds){
       {l:t('rd_primary'), best:'high', f:d => d.roads ? (d.roads.primary ? dist(d.roads.primary.d) : num(1e9, esc(t('rd_none')))) : null},
       {l:t('lf_station'), mod:'places', f:d => d.pl && d.pl.extraOk ? nearest(d.pl.stations) : null},
       {l:t('bus_nearStop'), mod:'bus', best:'low', f:d => d.bus ? nearest(d.bus.stops) : null},
-      {l:t('bus_routes'), mod:'bus', best:'high', f:d => d.bus ? num(d.bus.routes.length, String(d.bus.routes.length)) : null}
+      {l:t('bus_routes'), mod:'bus', best:'high', f:d => d.bus ? num(d.bus.routes.length, String(d.bus.routes.length)) : null},
+      {l:t('cars_nearFuel'), mod:'cars', best:'low', f:d => d.cars ? nearest(d.cars.fuel) : null},
+      {l:t('cars_nearEv'), mod:'cars', best:'low', f:d => d.cars ? nearest(d.cars.ev) : null}
     ]}
   ];
   const headCells = ds.map(d => '<th><span class="chip ' + IDCLS[d.item.i] + '">' + LETTERS[d.item.i] + '</span><div style="margin-top:6px;color:var(--ink);font-weight:600;overflow-wrap:anywhere">' + esc(d.item.geo.label) + '</div></th>').join('');
@@ -1816,7 +1972,7 @@ function render(){
   if (has){
     const fb = failbarHTML(ds);
     if (fb) out.unshift(fb);
-    if (state.topic === 'overview') out.push(overviewHTML(ds));
+    if (state.topic === 'overview') out.push(weatherHTML(ds) + overviewHTML(ds));
     else {
       const fn = {safety:safetyHTML, flood:floodHTML, schools:schoolsHTML, life:lifeHTML, roads:roadsHTML, housing:housingHTML}[state.topic];
       if (state.topic === 'housing') ds.forEach(d => ensureHpi(d.item));
@@ -1842,18 +1998,19 @@ const LAYERS = {
   station:{color:'#212529', key:'lg_station'},
   motor:{color:'#e03131', key:'lg_motor', line:true, w:5}, trunk:{color:'#f08c00', key:'lg_trunk', line:true, w:4}, aroad:{color:'#fab005', key:'lg_aroad', line:true, w:2.5},
   super:{color:'#2f9e44', key:'lg_super'}, mall:{color:'#e64980', key:'lg_mall'}, asian:{color:'#e8590c', key:'lg_asian'}, sport:{color:'#9c36b5', key:'lg_sport'}, food:{color:'#ff8787', key:'lg_food'}, cafe:{color:'#a9805b', key:'lg_cafe'},
+  fuel:{color:'#c2410c', key:'lg_fuel'}, ev:{color:'#15803d', key:'lg_ev'},
   busstop:{color:'#0b7285', key:'lg_busstop'}, busroute:{color:'#0ca678', key:'lg_busroute', line:true, w:3}, buslive:{color:'#e8590c', key:'lg_buslive'},
   crime:{color:'#d6336c', key:'lg_crime'}
 };
 const BUS_API = (window.NEST_BUS_API || '').trim();   // Vercel proxy URL, e.g. https://xxx.vercel.app/api/buses ; empty = live layer hidden
 const LIVE_ON = !!BUS_API;
-const LAYER_GROUPS = [['prim sec nurs uni indep', 'lgrp_school'], ['station busstop busroute' + (LIVE_ON ? ' buslive' : '') + ' motor trunk aroad', 'lgrp_transport'], ['super mall asian sport food cafe', 'lgrp_life'], ['crime', 'lgrp_safety']].map(x => [x[0].split(' '), x[1]]);
+const LAYER_GROUPS = [['prim sec nurs uni indep', 'lgrp_school'], ['station busstop busroute' + (LIVE_ON ? ' buslive' : '') + ' motor trunk aroad fuel ev', 'lgrp_transport'], ['super mall asian sport food cafe', 'lgrp_life'], ['crime', 'lgrp_safety']].map(x => [x[0].split(' '), x[1]]);
 const TOPIC_LAYERS = {
   overview:['prim', 'sec', 'nurs', 'uni', 'station', 'motor', 'trunk', 'super', 'mall'],
   safety:['crime'], flood:[], housing:[],
   schools:['prim', 'sec', 'nurs', 'uni', 'indep'],
   life:['super', 'mall', 'asian', 'sport', 'food', 'cafe'],
-  roads:['station', 'busstop', 'busroute'].concat(LIVE_ON ? ['buslive'] : [], ['motor', 'trunk', 'aroad'])
+  roads:['station', 'busstop', 'busroute'].concat(LIVE_ON ? ['buslive'] : [], ['motor', 'trunk', 'aroad', 'fuel', 'ev'])
 };
 function setTopicLayers(topic){ state.layers = new Set(TOPIC_LAYERS[topic] || []); }
 function ringRadius(d){
@@ -1870,7 +2027,7 @@ function buildScene(d){
     const a = arr.filter(s => maxD == null || s.d <= maxD);
     counts[key] = a.length;
     if (!L.has(key)) return;
-    a.slice(0, max).forEach(s => pts.push({la:s.la, ln:s.ln, layer:key, r, name:s.name || (fb ? fb(s) : ''), d:s.d, extra:s.cuisine || ''}));
+    a.slice(0, max).forEach(s => pts.push({la:s.la, ln:s.ln, layer:key, r, name:s.name || (fb ? fb(s) : ''), d:s.d, extra:s.extra || s.cuisine || ''}));
   };
   if (P && P.eduOk){
     addPts('prim', P.prim, 30, 7, 3300);
@@ -1889,6 +2046,10 @@ function buildScene(d){
     addPts('sport', P.sports, 12, 6, null, s => t('t_' + s.type));
     addPts('food', P.foodList.filter(f => f.type === 'restaurant' || f.type === 'fast_food'), 250, 4, null, s => s.type === 'fast_food' ? t('nm_takeaway') : t('nm_food'));
     addPts('cafe', P.foodList.filter(f => f.type === 'cafe' || f.type === 'pub'), 200, 4, null, s => s.type === 'pub' ? t('nm_pub') : t('nm_cafe'));
+  }
+  if (d.cars){
+    addPts('fuel', d.cars.fuel, 40, 6, null, () => t('nm_fuel'));
+    addPts('ev', d.cars.ev.map(e => Object.assign({}, e, {extra:evExtra(e)})), 60, 6, null, () => t('nm_ev'));
   }
   if (LIVE_ON && live.loaded) counts.buslive = live.n;
   if (d.bus){
@@ -2271,7 +2432,14 @@ function refreshMap(){
 }
 
 /* ---------- ui wiring ---------- */
+function renderToday(){
+  const el = $('#today'); if (!el) return;
+  try{
+    el.textContent = new Date().toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  }catch(e){ el.textContent = ''; }
+}
 function applyLang(){
+  renderToday();
   document.documentElement.lang = state.lang === 'zh' ? 'zh-HK' : 'en';
   $$('[data-i18n]').forEach(n => n.textContent = t(n.dataset.i18n));
   $$('[data-i18n-ph]').forEach(n => n.placeholder = t(n.dataset.i18nPh));
@@ -2312,6 +2480,7 @@ function applyTheme(th){
   $('#lang-en').onclick = () => setLang('en');
   $('#lang-zh').onclick = () => setLang('zh');
   $('#form').addEventListener('submit', e => { e.preventDefault(); run(); });
+  setInterval(renderToday, 60000);   // rolls over at midnight if the page is left open
   try{   // links from the area pages: /?q=Camberley, Surrey
     const q0 = new URLSearchParams(location.search).get('q');
     if (q0 && q0.trim()){ $('#q0').value = q0.trim().slice(0, 120); setTimeout(run, 0); }

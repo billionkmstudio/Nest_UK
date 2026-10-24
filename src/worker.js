@@ -6,11 +6,13 @@
 //   /api/crime-last-updated, /api/crime  police.uk street crime, edge-cached
 //   /api/flood-warnings  live flood warnings (Environment Agency), edge-cached
 //   /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas.json (src/seo.js)
-//   /api/overpass?kind=edu|extra|life|roads|bus  OpenStreetMap places, edge-cached
+//   /api/weather  3-day forecast (MET Norway), edge-cached
+//   /api/overpass?kind=edu|extra|life|roads|bus|cars  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
 
 import Q from '../public/queries.js';
 import { seoHandler } from './seo.js';
+import { summariseForecast } from './weather.js';
 
 const json = (obj, status = 200, extra = {}) =>
   new Response(JSON.stringify(obj), {
@@ -485,6 +487,30 @@ async function floodWarnings(request, env, ctx, url) {
   return res || json({ error: 'upstream' }, 502);
 }
 
+/* ============================== WEATHER ============================== */
+// MET Norway Locationforecast (CC BY 4.0). Rules: identifying User-Agent, coordinates truncated to 4 decimals, no
+// repeat requests before the answer expires (we cache 30 minutes), attribution shown on the page.
+const MET_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/compact';
+async function weather(request, env, ctx, url) {
+  const lat = Math.round(parseFloat(url.searchParams.get('lat')) * 1e4) / 1e4, lng = Math.round(parseFloat(url.searchParams.get('lng')) * 1e4) / 1e4;
+  if (!isFinite(lat) || !isFinite(lng) || !inUK(lat, lng)) return json({ error: 'bad request' }, 400);
+  // snap to about 1 km so nearby searches share one cached forecast
+  const sl = Math.round(lat * 100) / 100, sg = Math.round(lng * 100) / 100;
+  const params = { lat: sl, lng: sg };
+  const res = await edgeCached(ctx, cacheKey('/wx', params), cacheKey('/wx-stale', params), 1800, 6 * 3600, async () => {
+    const r = await fetch(MET_URL + '?lat=' + sl.toFixed(2) + '&lon=' + sg.toFixed(2), {
+      headers: { 'User-Agent': 'NestUK/1.0 https://nestuk.co.uk', Accept: 'application/json' }, signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const days = summariseForecast(j);
+    if (!days.length) return null;
+    const upd = j.properties && j.properties.meta && j.properties.meta.updated_at;
+    return { days, updated: upd || null, src: 'MET Norway' };
+  });
+  return res || json({ error: 'upstream' }, 502);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -493,6 +519,7 @@ export default {
     if (url.pathname === '/api/flood') return flood(request, env, ctx, url);
     if (url.pathname === '/api/crime-last-updated') return crimeLastUpdated(request, env, ctx);
     if (url.pathname === '/api/flood-warnings') return floodWarnings(request, env, ctx, url);
+    if (url.pathname === '/api/weather') return weather(request, env, ctx, url);
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
