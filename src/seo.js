@@ -76,7 +76,7 @@ function crimeSentence(t, D) {
     else if (t.vsMedian !== null && Math.abs(t.vsMedian) >= 5) parts.push('It is ' + Math.abs(t.vsMedian) + '% ' + (t.vsMedian < 0 ? 'below' : 'above') + ' the median town.');
     else if (t.vsMedian !== null) parts.push('It is close to the median town.');
   }
-  if (t.trend !== null && Math.abs(t.trend) >= 5) parts.push('The most recent months were ' + Math.abs(t.trend) + '% ' + (t.trend < 0 ? 'lower' : 'higher') + ' than the months before.');
+  if (t.trend !== null && c.perMonth >= 20 && Math.abs(t.trend) >= 5) parts.push('The most recent months were ' + Math.abs(t.trend) + '% ' + (t.trend < 0 ? 'lower' : 'higher') + ' than the months before.');
   return parts.join(' ');
 }
 function topCats(t, n) {

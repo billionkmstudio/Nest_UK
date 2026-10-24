@@ -85,4 +85,9 @@ const busy = prepare({ towns: [['A', 200], ['B', 40], ['C', 50], ['D', 60], ['E'
 const aPage = route('/uk/surrey/a', busy);
 check('wording: very busy centre gets footfall caveat, no huge percentage', aPage.includes('footfall') === false && aPage.includes('more people pass through') && !/\d{3}% above/.test(aPage) && aPage.includes('well above the median'), aPage.slice(0, 50));
 
+const small = prepare({ towns: [{ slug: 'tiny-town', name: 'Tiny Town', county: 'surrey', lat: 51, lng: -0.5, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: k < 6 ? 3 : 9 })), total: 72, perMonth: 6, cats: { burglary: 72 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, nearestPrimary: [], nearestSecondary: [] } },
+  { slug: 'big-town', name: 'Big Town', county: 'surrey', lat: 51.1, lng: -0.5, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: k < 6 ? 30 : 60 })), total: 540, perMonth: 45, cats: { burglary: 540 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, nearestPrimary: [], nearestSecondary: [] } }], county: 'surrey', countyName: 'Surrey', latest: '2026-08', built: '2026-10-23', radiusM: 600 });
+check('trend: not printed when under 20 crimes a month', !route('/uk/surrey/tiny-town', small).includes('than the months before'));
+check('trend: printed for a bigger town', route('/uk/surrey/big-town', small).includes('higher than the months before'));
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);
