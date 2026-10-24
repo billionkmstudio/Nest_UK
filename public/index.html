@@ -228,6 +228,31 @@ input[type=text],select{width:100%;height:46px;border:1px solid var(--line);bord
 .sharebar[hidden]{display:none}
 .sharebar button{height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 13px var(--body);cursor:pointer}
 
+/* phones: tighter gaps so more of each report fits on screen */
+.blk{margin-top:22px}
+@media (max-width:560px){
+  .wrap{padding-inline:8px;padding-block:12px 40px}
+  .card{padding:12px 11px;border-radius:12px}
+  .stack{gap:10px}
+  .rhead{gap:10px}
+  .rhead h2{font-size:20px}
+  .stats{gap:8px;margin-top:12px}
+  .stat{padding:9px 10px}
+  .stat b{font-size:22px;margin-top:3px}
+  .cols{gap:14px;margin-top:14px}
+  .blk{margin-top:14px}
+  h3.sec{margin-bottom:6px}
+  .notes{margin-top:12px;gap:4px}
+  .btnrow{margin-top:10px}
+  .btnrow a{padding:8px 12px}
+  .plist li,.streets li{padding:5px 0}
+  .wx{gap:8px;margin-top:10px}
+  .wxd{padding:9px 10px}
+  .topics{margin-bottom:-2px}
+  .sharebar{margin-bottom:8px}
+  .stat small{font-size:12px}
+}
+
 /* intro */
 .get{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 .get div{border-top:2px solid var(--line);padding-top:10px}
@@ -523,7 +548,7 @@ window.NEST_SAT_TILES = '';
 window.NEST_SAT_ATTR = '';
 /* 長期水浸風險等級：EA 資料服務暫時失效，預設關閉（只顯示即時警報＋GOV.UK 連結）。找到可用網址後改成 true。 */
 window.NEST_FLOOD_BAND = false;
-window.NEST_VERSION = '1.0.27';   // 每次更新網頁時改這個版本號，會顯示在頁尾
+window.NEST_VERSION = '1.0.28';   // 每次更新網頁時改這個版本號，會顯示在頁尾
 window.NEST_BUILD = '2026-10-23';
 </script>
 <script>
@@ -1435,9 +1460,10 @@ function scheduleRender(){ if (rT) return; rT = setTimeout(() => { rT = 0; if (s
 /* ---------- run ---------- */
 async function run(){
   if (state.running) return;
-  const qs = [0, 1, 2].map(i => $('#q' + i).value.trim()).filter(Boolean);
+  const qs = [0, 1, 2].map(i => tidyQuery($('#q' + i).value)).filter(Boolean);
   if (!qs.length){ setMsg(t('needAddr')); return; }
   setMsg('');
+  [0, 1, 2].forEach(i => { const v = $('#q' + i).value.trim(); if (v) $('#q' + i).value = tidyQuery(v); });
   collapseSearch(qs);
   recentPut(qs); track('search', state.lang, qs.length, state.radius);
   state.running = true; $('#go').disabled = true;
@@ -1476,6 +1502,12 @@ async function run(){
 }
 
 /* mobile only: fold the search form into a summary bar once a search starts */
+function tidyQuery(q){   // phone keyboards give "Gu16 6tj": show UK postcodes the proper way
+  const raw = String(q).trim().replace(/\s+/g, ' ');
+  const m = raw.toUpperCase().match(/^([A-Z]{1,2}\d[A-Z\d]?)\s?(\d[A-Z]{2})$/);
+  if (m) return m[1] + ' ' + m[2];
+  return /^[A-Za-z]{1,2}\d[A-Za-z\d]?$/.test(raw) ? raw.toUpperCase() : raw;
+}
 function collapseSearch(qs){
   if (canLanding()) return;
   const R = state.radius;
@@ -1620,7 +1652,7 @@ function safetyHTML(d){
     '<div class="subs">' + subs + '</div>' +
     '<div class="cols"><div><h3 class="sec">' + esc(t('trendTitle')) + '</h3>' + sparkline(an) + '<p class="dir">' + esc(tt.txt) + '</p></div>' +
     '<div><h3 class="sec">' + esc(t('catTitle')) + '</h3>' + cats + '</div></div>' +
-    (streets ? '<div style="margin-top:22px"><h3 class="sec">' + esc(t('streetTitle')) + '</h3>' + streets + '</div>' : '') +
+    (streets ? '<div class="blk"><h3 class="sec">' + esc(t('streetTitle')) + '</h3>' + streets + '</div>' : '') +
     '<ul class="notes">' + notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul></article>';
 }
 
@@ -1834,12 +1866,12 @@ function evExtra(e){
 function carsBlock(d){
   const item = d.item, C = d.cars;
   const head3 = '<h3 class="sec">' + esc(t('cars_title')) + '</h3>';
-  if (!C) return '<div style="margin-top:22px">' + head3 + '<p class="dir">' + (item.mod.cars === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':cars">' + esc(t('retry')) + '</button>') + '</p></div>';
+  if (!C) return '<div class="blk">' + head3 + '<p class="dir">' + (item.mod.cars === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':cars">' + esc(t('retry')) + '</button>') + '</p></div>';
   const nf = C.fuel[0], ne = C.ev[0], MI3 = 3 * MI, MI2 = 2 * MI;
   const fuelRow = f => '<li><span class="nm">' + esc(f.name || t('nm_fuel')) + (f.h247 ? '<span class="badge">' + esc(t('cars_open247')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(f.d)) + '</span></li>';
   const evRow = e => '<li><span class="nm">' + esc(e.name || t('nm_ev')) + (evExtra(e) ? '<span class="badge">' + esc(evExtra(e)) + '</span>' : '') + (e.fee ? '<span class="badge">' + esc(t('cars_fee')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(e.d)) + '</span></li>';
   const rows = (arr, fn) => arr.slice(0, 5).map(fn).join('') || '<li><span class="empty">' + esc(t('cars_none')) + '</span></li>';
-  return '<div style="margin-top:22px">' + head3 +
+  return '<div class="blk">' + head3 +
     '<div class="stats" style="margin-top:0">' +
       stat(t('cars_nearFuel'), nf ? esc(fmtDist(nf.d)) : '–', nf ? nf.name : '') +
       stat(t('cars_fuelCount'), String(C.fuel.filter(f => f.d <= MI3).length)) +
@@ -1874,13 +1906,13 @@ function roadsHTML(d){
 function busBlock(d){
   const item = d.item, B = d.bus;
   const head3 = '<h3 class="sec">' + esc(t('bus_title')) + '</h3>';
-  if (!B) return '<div style="margin-top:22px">' + head3 + '<p class="dir">' + (item.mod.bus === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':bus">' + esc(t('retry')) + '</button>') + '</p></div>';
+  if (!B) return '<div class="blk">' + head3 + '<p class="dir">' + (item.mod.bus === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':bus">' + esc(t('retry')) + '</button>') + '</p></div>';
   const ns = B.stops[0];
   const rows = B.routes.slice(0, 12).map(r => {
     const label = r.name || (r.from && r.to ? r.from + ' → ' + r.to : '');
     return '<li><span class="nm"><b class="ref">' + esc(r.ref) + '</b> ' + esc(label) + (r.operator ? '<span class="badge">' + esc(r.operator) + '</span>' : '') + '</span><span class="dd">' + esc(fmtDist(r.minD)) + '</span></li>';
   }).join('');
-  return '<div style="margin-top:22px">' + head3 +
+  return '<div class="blk">' + head3 +
     '<div class="stats" style="margin-top:0">' + stat(t('bus_nearStop'), ns ? esc(fmtDist(ns.d)) : '–', ns ? ns.name : '') + stat(t('bus_routes'), String(B.routes.length)) + stat(t('bus_stops'), String(B.stops.length)) + '</div>' +
     '<ul class="plist" style="margin-top:12px">' + (rows || '<li><span class="empty">' + esc(t('bus_none')) + '</span></li>') + '</ul>' +
     '<ul class="notes"><li>' + esc(t('bus_note')) + '</li></ul>' +
