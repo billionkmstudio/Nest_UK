@@ -544,6 +544,7 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 <script src="/gias.js"></script>
 <script src="/queries.js"></script>
 <script src="/place.js"></script>
+<script src="/social.js"></script>
 <script>
 /* 實時巴士：部署 Vercel 代理後，把網址貼在下面，例如 'https://你的專案.vercel.app/api/buses'。留空 = 不顯示實時巴士。 */
 window.NEST_BUS_API = '/api/buses';
@@ -935,7 +936,7 @@ const T = {
     g_roads:'Transport', g_roads_d:'Railway stations, bus routes and stops, motorways and A-roads, shown on the map.',
     tab_overview:'Overview', tab_safety:'Safety', tab_flood:'Flood', tab_schools:'Schools', tab_life:'Daily life', tab_roads:'Transport', tab_housing:'Housing',
     hp_trend:'Average price, last 12 months', hp_trend_alt:'Average price from {a} ({p}) to {b} ({q})', hp_h:'House prices', hp_load:'Loading house price data…', hp_avg:'Average price (all homes)', hp_det:'Detached', hp_semi:'Semi-detached', hp_terr:'Terraced', hp_flat:'Flat / maisonette', hp_chg:'Change over 12 months', hp_month:'Latest data: {m}. Source: HM Land Registry UK House Price Index.', hp_err:'House price data could not be loaded for this area.', hp_none:'House price data needs the data service to be set up, so it is not shown here.', hp_note:'This is an average for the whole council area, so it hides big differences between streets and between cheap and expensive neighbourhoods. It is based on completed sales, not current asking prices. Use it only as a rough guide.', hp_norent:'Average rents are not shown yet.', hp_link:'UK House Price Index (HM Land Registry) ↗',
-    hs_council:'Local council area', hs_h1:'Council housing and affordable housing', hs_p1:'Whether you can apply for council housing, and how long the wait is, is decided by the local council. Rules usually include residence and eligibility conditions, and these can depend on your immigration status. This tool cannot tell you if you qualify, so please check with the council.', hs_p2:'There is no free national map of where council or affordable homes are, so this tool does not show any. The links below are official.', hs_b1:'Apply for council housing (GOV.UK, England)', hs_b2:'Affordable home ownership schemes (GOV.UK, England)', hs_b3:'Find your local council', hs_b4:'Northern Ireland Housing Executive', hs_other:'Housing rules in Scotland, Wales and Northern Ireland are different from England. Please use your council or the national housing body for the correct steps.', hs_h2:'Japanese knotweed', hs_p3:'Japanese knotweed is an invasive plant that is hard to remove and can affect mortgages and insurance. This tool has no knotweed map, because there is no free official one. When buying, ask the seller about it (the standard property information form has a knotweed question) and ask your surveyor to look for it.', hs_b5:'Japanese knotweed guidance (GOV.UK)',
+    hs_council:'Local council area', hs_h1:'Council housing and affordable housing', hs_p1:'Whether you can apply for council housing, and how long the wait is, is decided by the local council. Rules usually include residence and eligibility conditions, and these can depend on your immigration status. This tool cannot tell you if you qualify, so please check with the council.', hs_p2:'There is no free national map of where council or affordable homes are, so this tool does not show where individual homes are. Any figures above are totals for the whole council area. The links below are official.', hs_b1:'Apply for council housing (GOV.UK, England)', hs_b2:'Affordable home ownership schemes (GOV.UK, England)', hs_b3:'Find your local council', hs_b4:'Northern Ireland Housing Executive', hs_other:'Housing rules in Scotland, Wales and Northern Ireland are different from England. Please use your council or the national housing body for the correct steps.', hs_h2:'Japanese knotweed', hs_p3:'Japanese knotweed is an invasive plant that is hard to remove and can affect mortgages and insurance. This tool has no knotweed map, because there is no free official one. When buying, ask the seller about it (the standard property information form has a knotweed question) and ask your surveyor to look for it.', hs_b5:'Japanese knotweed guidance (GOV.UK)', sh_h:'Council and affordable homes', sh_council:'Council-owned homes', sh_ha:'Housing association homes', sh_new:'New affordable homes, {y}', sh_new5:'New affordable homes since {y}', sh_by:'New affordable homes in {y} by type:', sh_none:'none recorded', sh_t_sr:'Social rent', sh_t_ar:'Affordable rent', sh_t_ir:'Intermediate rent', sh_t_so:'Shared ownership', sh_t_aho:'Other affordable ownership', sh_t_fh:'First Homes', sh_t_un:'Type not recorded', sh_transfer:'This council has handed most or all of its homes to housing associations, so it owns few itself. The homes are mostly run by housing associations, but you normally still apply through the council.', sh_note_stock:'These are existing homes in the whole council area, not homes free to rent now. The housing association figure only counts providers with 1,000 or more homes, so the real number is a little higher. Together they are the area\u2019s social housing.', sh_note_new:'New affordable homes are homes finished in each financial year (April to March), built new or bought in. Homes sold or demolished are not subtracted, and the street you searched could be far from where they were built.', sh_terms:'Social rent is the lowest rent, set by a national formula. Affordable rent is up to 80% of the local market rent (this includes London Affordable Rent). Intermediate rent sits between social and market rent. Shared ownership means buying a share and paying rent on the rest. Other affordable ownership and First Homes are homes sold at a discount to eligible buyers.', sh_src:'Source: Ministry of Housing, Communities and Local Government (England only), Open Government Licence v3.0. Newest data: homes owned at {d}; new homes up to the {y} financial year. Homes whose local authority is not recorded are left out.',
     st_crime:'Crime', st_flood:'Flood', st_places:'Places', st_roads:'Roads', st_bus:'Buses', st_cars:'Fuel & EV', st_weather:'Weather',
     finding:'Finding the location…',
     errNotFound:'We could not find that address. Try the postcode instead.',
@@ -1026,7 +1027,7 @@ const T = {
     how:'<p>Each of the four crime areas below is the number of reported crimes per square kilometre per year, placed on a log scale. 0 means at or below the low anchor, 100 means at or above the high anchor.</p><ul>{rows}</ul><p>The overall crime score is a weighted average of the four, using the weights for the option you chose. The anchors are fixed values chosen for this tool, not an official ranking, so the score is best used to compare addresses with each other.</p><p>Only reported crime is counted. Months with unusually few records are left out as probable data gaps. Flood, schools, shops, sport and roads are shown as facts and distances, not scored.</p>',
     howRow:'{g}: 0 at {lo}, 100 at {hi} per km² per year',
     disclaimer:'Important: the crime risk score is an experimental indicator based on publicly available police.uk data. Crime, flood and map data may be incomplete or delayed, a lower score does not guarantee safety, and nothing here is advice on whether to rent or buy. Always visit the area yourself.',
-    attrib:'Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.'
+    attrib:'Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Housing: Ministry of Housing, Communities and Local Government (Open Government Licence v3.0). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.'
   },
   zh:{
     brandSub:'英國安樂窩 · 地區透視',
@@ -1045,7 +1046,7 @@ const T = {
     g_roads:'交通', g_roads_d:'火車站、巴士路線和巴士站、高速公路和 A 字頭公路，並在地圖上標示位置。',
     tab_overview:'總覽', tab_safety:'治安', tab_flood:'水浸', tab_schools:'學校', tab_life:'生活配套', tab_roads:'交通', tab_housing:'房屋',
     hp_trend:'過去 12 個月平均樓價走勢', hp_trend_alt:'平均樓價由 {a}（{p}）到 {b}（{q}）', hp_h:'樓價', hp_load:'正在載入樓價資料…', hp_avg:'平均樓價（所有類型）', hp_det:'獨立屋', hp_semi:'半獨立屋', hp_terr:'排屋', hp_flat:'公寓／單位', hp_chg:'過去 12 個月變化', hp_month:'最新資料：{m}。來源：HM Land Registry（土地註冊處）UK House Price Index。', hp_err:'載入不到這個地區的樓價資料。', hp_none:'樓價資料需要設定資料服務，所以暫時不顯示。', hp_note:'這是整個議會區域的平均數，會掩蓋街道之間、平價區和貴價區之間的巨大差異。它根據已成交的個案計算，不是現時的叫價。只能當作大方向參考。', hp_norent:'暫時未有平均租金資料。', hp_link:'UK House Price Index（HM Land Registry）↗',
-    hs_council:'所屬議會（地區）', hs_h1:'社會房屋（Council housing）與可負擔房屋', hs_p1:'能否申請 council housing、要輪候多久，由所屬議會決定。通常有居住和資格要求，這些要求可能與你的身份有關。這個網頁無法判斷你是否符合資格，請直接向議會查詢。', hs_p2:'英國沒有免費的全國地圖可以顯示 council 或可負擔房屋在哪裡，所以這裡不顯示位置。下面的連結都是官方頁面。', hs_b1:'申請 council housing（GOV.UK，英格蘭）', hs_b2:'可負擔購屋計劃（GOV.UK，英格蘭）', hs_b3:'查詢你所屬的議會', hs_b4:'北愛爾蘭房屋署（NI Housing Executive）', hs_other:'蘇格蘭、威爾斯和北愛爾蘭的房屋制度與英格蘭不同，請向當地議會或全國房屋機構查詢正確步驟。', hs_h2:'日本虎杖（Japanese knotweed）', hs_p3:'日本虎杖是一種很難清除的入侵植物，可能影響按揭和保險。這個網頁沒有虎杖地圖，因為沒有免費的官方資料。買樓時請向賣家查詢（標準的物業資料表格有虎杖的問題），並請驗樓師留意。', hs_b5:'日本虎杖指引（GOV.UK）',
+    hs_council:'所屬議會（地區）', hs_h1:'社會房屋（Council housing）與可負擔房屋', hs_p1:'能否申請 council housing、要輪候多久，由所屬議會決定。通常有居住和資格要求，這些要求可能與你的身份有關。這個網頁無法判斷你是否符合資格，請直接向議會查詢。', hs_p2:'英國沒有免費的全國地圖可以顯示 council 或可負擔房屋在哪裡，所以這裡不顯示個別房屋的位置。上面如有數字，都是整個議會區域的總數。下面的連結都是官方頁面。', hs_b1:'申請 council housing（GOV.UK，英格蘭）', hs_b2:'可負擔購屋計劃（GOV.UK，英格蘭）', hs_b3:'查詢你所屬的議會', hs_b4:'北愛爾蘭房屋署（NI Housing Executive）', hs_other:'蘇格蘭、威爾斯和北愛爾蘭的房屋制度與英格蘭不同，請向當地議會或全國房屋機構查詢正確步驟。', hs_h2:'日本虎杖（Japanese knotweed）', hs_p3:'日本虎杖是一種很難清除的入侵植物，可能影響按揭和保險。這個網頁沒有虎杖地圖，因為沒有免費的官方資料。買樓時請向賣家查詢（標準的物業資料表格有虎杖的問題），並請驗樓師留意。', hs_b5:'日本虎杖指引（GOV.UK）', sh_h:'社會房屋與可負擔房屋', sh_council:'議會擁有的房屋', sh_ha:'房屋協會擁有的房屋', sh_new:'{y} 年度新增可負擔房屋', sh_new5:'{y} 年度起新增可負擔房屋', sh_by:'{y} 年度新增可負擔房屋（按類型）：', sh_none:'沒有紀錄', sh_t_sr:'社會租屋', sh_t_ar:'可負擔租屋', sh_t_ir:'中間租屋', sh_t_so:'共享業權', sh_t_aho:'其他可負擔置業', sh_t_fh:'首置屋（First Homes）', sh_t_un:'類型未有紀錄', sh_transfer:'這個議會已把大部分或全部房屋交給房屋協會管理，所以自己擁有的很少。這些房屋大多由房屋協會營運，但申請通常仍然要經議會。', sh_note_stock:'這些是整個議會區域現有的房屋，不是現在有空置可租的數量。房屋協會的數字只計算擁有 1,000 間或以上房屋的機構，所以實際數字會稍高。兩者加起來就是這個地區的社會房屋。', sh_note_new:'新增可負擔房屋是每個財政年度（4 月至翌年 3 月）落成的數量，包括新建和買入的。已出售或拆卸的沒有扣除，而且你搜尋的街道可能離這些房屋的位置很遠。', sh_terms:'社會租屋租金最低，由全國統一公式計算。可負擔租屋最高為當地市價租金的 80%（包括倫敦的 London Affordable Rent）。中間租屋租金介乎社會租屋和市價之間。共享業權是買入部分業權，餘下部分繳租。其他可負擔置業和 First Homes 是以折扣價售予合資格買家的房屋。', sh_src:'來源：英國住房、社區及地方政府部（Ministry of Housing, Communities and Local Government，只涵蓋英格蘭），Open Government Licence v3.0。最新資料：房屋存量為 {d}；新增房屋至 {y} 財政年度。沒有紀錄所屬議會的房屋不計算在內。',
     st_crime:'罪案', st_flood:'水浸', st_places:'地點', st_roads:'道路', st_bus:'巴士', st_cars:'油站及充電站', st_weather:'天氣',
     finding:'正在搵地點…',
     errNotFound:'搵唔到這個地址，請改用郵編試試。',
@@ -1131,7 +1132,7 @@ const T = {
     how:'<p>下面四個罪案範疇，都是以「每平方公里每年的已報案罪案數目」按對數刻度換算。0 代表等於或低於下限，100 代表等於或高於上限。</p><ul>{rows}</ul><p>罪案整體分數是四個範疇的加權平均，權重按你選擇的側重而定。上下限是為本工具設定的固定數值，並非官方排名，最適合用來比較不同地址。</p><p>只計算已報案的罪案。紀錄異常地少的月份會視為數據缺漏而剔除。水浸、學校、商鋪、運動和道路只列出事實和距離，不計分。</p>',
     howRow:'{g}：每平方公里每年 {lo} 宗為 0 分，{hi} 宗為 100 分',
     disclaimer:'重要提示：罪案風險分數是根據 police.uk 公開數據得出的實驗性指標。罪案、水浸和地圖數據可能不完整或有延遲，分數較低不代表安全，本頁內容亦不構成租樓或買樓建議。請一定親身到當區看看。',
-    attrib:'罪案：police.uk（Open Government Licence v3.0）。水浸：環境署（Open Government Licence）。郵編：postcodes.io。學校類型：英國教育部 Get Information about Schools（Open Government Licence v3.0）。學校、商鋪、食肆、運動、火車站、道路、地址及地圖：© OpenStreetMap contributors。'
+    attrib:'罪案：police.uk（Open Government Licence v3.0）。水浸：環境署（Open Government Licence）。房屋：英國住房、社區及地方政府部（Open Government Licence v3.0）。郵編：postcodes.io。學校類型：英國教育部 Get Information about Schools（Open Government Licence v3.0）。學校、商鋪、食肆、運動、火車站、道路、地址及地圖：© OpenStreetMap contributors。'
   }
 };
 
@@ -1212,7 +1213,7 @@ async function geocode(q){
     const place = isPostcode ? (j.admin_district || j.region || '') : ((j.admin_district || []).join(', '));
     const council = isPostcode ? [j.admin_district, j.admin_county].filter(Boolean).join(', ') : ((j.admin_district || []).join(', '));
     const district = isPostcode ? (j.admin_district || '') : ((j.admin_district || []).length === 1 ? j.admin_district[0] : '');
-    return {lat:j.latitude, lng:j.longitude, label:isPostcode ? j.postcode : raw, place, council, district, placeSearch:!isPostcode, country:countries.length === 1 ? (countries[0] || '') : ''};
+    return {lat:j.latitude, lng:j.longitude, label:isPostcode ? j.postcode : raw, place, council, district, lad:isPostcode ? ((j.codes || {}).admin_district || '') : '', placeSearch:!isPostcode, country:countries.length === 1 ? (countries[0] || '') : ''};
   }
   let r;
   try{
@@ -1224,13 +1225,13 @@ async function geocode(q){
   if (!j.length) throw new Error('notfound');
   const a = j[0].address || {};
   const parts = String(j[0].display_name).split(',').map(s => s.trim());
-  let council = '', district = '';
+  let council = '', district = '', lad = '';
   try{
     const rr = await fetch('https://api.postcodes.io/postcodes?lon=' + (+j[0].lon) + '&lat=' + (+j[0].lat) + '&limit=1');
-    if (rr.ok){ const x = ((await rr.json()).result || [])[0]; if (x){ council = [x.admin_district, x.admin_county].filter(Boolean).join(', '); district = x.admin_district || ''; } }
+    if (rr.ok){ const x = ((await rr.json()).result || [])[0]; if (x){ council = [x.admin_district, x.admin_county].filter(Boolean).join(', '); district = x.admin_district || ''; lad = (x.codes || {}).admin_district || ''; } }
   }catch(e){}
   const ar = placeArea(j[0]);
-  return {lat:ar ? ar.lat : +j[0].lat, lng:ar ? ar.lng : +j[0].lon, area:ar ? ar.poly : null, placeSearch:!!ar, label:parts.slice(0, 2).join(', '), place:[a.town || a.city || a.village || a.suburb || '', a.state || ''].filter(Boolean).join(', '), council, district, country:a.state || ''};
+  return {lat:ar ? ar.lat : +j[0].lat, lng:ar ? ar.lng : +j[0].lon, area:ar ? ar.poly : null, placeSearch:!!ar, label:parts.slice(0, 2).join(', '), place:[a.town || a.city || a.village || a.suburb || '', a.state || ''].filter(Boolean).join(', '), council, district, lad, country:a.state || ''};
 }
 
 /* crime */
@@ -1745,12 +1746,49 @@ function priceBlock(item){
   return '<h3 style="margin:18px 0 6px;font-size:15px">' + esc(t('hp_h')) + ' · ' + esc(item.geo.district || item.geo.council || '') + '</h3>' + body +
     '<p class="dir">' + esc(t('hp_note')) + '</p><p class="dir">' + esc(t('hp_norent')) + '</p>';
 }
+/* Council housing stock and new affordable homes for the local authority (public/data/social-housing.json, England only) */
+const SOCIAL = {data:null, tried:false};
+async function ensureSocial(){
+  if (SOCIAL.tried) return;
+  SOCIAL.tried = true;
+  try{
+    const r = await fetch('/data/social-housing.json');
+    if (r.ok) SOCIAL.data = await r.json();
+  }catch(e){}
+  if (SOCIAL.data && state.topic === 'housing' && !state.running) render();
+}
+const SH_TEN = {sr:'sh_t_sr', ar:'sh_t_ar', ir:'sh_t_ir', so:'sh_t_so', aho:'sh_t_aho', fh:'sh_t_fh', un:'sh_t_un'};
+function socialBlock(item){
+  const f = SOCIAL.data && NestSocial.find(SOCIAL.data, item.geo);
+  if (!f) return '';
+  const s = NestSocial.summarise(SOCIAL.data, f.rec);
+  if (!s.any) return '';
+  const n = v => Number(v).toLocaleString('en-GB');
+  let when = s.stockDate;
+  try{ when = new Date(s.stockDate + 'T12:00:00').toLocaleDateString(state.lang === 'zh' ? 'zh-HK' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}); }catch(e){}
+  const stats = [];
+  if (s.council) stats.push(stat(t('sh_council'), esc(n(s.council)), when));
+  if (s.ha) stats.push(stat(t('sh_ha'), esc(n(s.ha)), when));
+  if (s.total) {
+    stats.push(stat(t('sh_new', {y:s.latestYear}), esc(n(s.latestTotal)), ''));
+    stats.push(stat(t('sh_new5', {y:s.firstYear}), esc(n(s.total)), ''));
+  }
+  const by = Object.keys(SH_TEN).filter(k => s.latestBy[k]).map(k => t(SH_TEN[k]) + ' ' + n(s.latestBy[k])).join(' · ');
+  const yrs = s.years.map(x => x.y + ': ' + n(x.n)).join(' · ');
+  return '<h3 style="margin:18px 0 6px;font-size:15px">' + esc(t('sh_h')) + ' · ' + esc(s.name) + '</h3>' +
+    '<div class="stats">' + stats.join('') + '</div>' +
+    (s.total ? '<p class="dir">' + esc(t('sh_by', {y:s.latestYear})) + ' ' + esc(by || t('sh_none')) + '</p><p class="dir">' + esc(yrs) + '</p>' : '') +
+    (s.transferred ? '<p class="dir">' + esc(t('sh_transfer')) + '</p>' : '') +
+    '<p class="dir">' + esc(t('sh_note_stock')) + '</p><p class="dir">' + esc(t('sh_note_new')) + '</p><p class="dir">' + esc(t('sh_terms')) + '</p>' +
+    '<p class="dir">' + esc(t('sh_src', {d:when, y:s.latestYear})) + '</p>';
+}
 function housingHTML(d){
   const item = d.item, c = item.geo.country || '', eng = !c || c === 'England';
   const a = (u, k) => '<a href="' + u + '" target="_blank" rel="noopener">' + esc(t(k)) + '</a>';
   return '<article class="card">' + head(item, item.geo.place) +
     '<div class="stats">' + stat(t('hs_council'), esc(item.geo.council || '–'), '') + '</div>' +
     priceBlock(item) +
+    socialBlock(item) +
     '<h3 style="margin:18px 0 6px;font-size:15px">' + esc(t('hs_h1')) + '</h3><p class="dir">' + esc(t('hs_p1')) + '</p><p class="dir">' + esc(t('hs_p2')) + '</p>' +
     (eng ? '' : '<p class="dir">' + esc(t('hs_other')) + '</p>') +
     '<div class="btnrow">' + (eng ? a('https://www.gov.uk/apply-for-council-housing', 'hs_b1') + a('https://www.gov.uk/affordable-home-ownership-schemes', 'hs_b2') : '') + a('https://www.gov.uk/find-local-council', 'hs_b3') + (c === 'Northern Ireland' ? a('https://www.nihe.gov.uk/', 'hs_b4') : '') + '</div>' +
@@ -2035,7 +2073,7 @@ function render(){
     if (state.topic === 'overview') out.push(weatherHTML(ds) + overviewHTML(ds));
     else {
       const fn = {safety:safetyHTML, flood:floodHTML, schools:schoolsHTML, life:lifeHTML, roads:roadsHTML, housing:housingHTML}[state.topic];
-      if (state.topic === 'housing') ds.forEach(d => ensureHpi(d.item));
+      if (state.topic === 'housing'){ ds.forEach(d => ensureHpi(d.item)); ensureSocial(); }
       ds.forEach(d => out.push(fn(d)));
     }
   }

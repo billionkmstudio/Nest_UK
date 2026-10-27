@@ -1,0 +1,7 @@
+{
+  "name": "nest-uk-build-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Build-time scripts only. Not part of the Worker bundle.",
+  "dependencies": { "xlsx": "0.18.5" }
+}
