@@ -1,0 +1,68 @@
+name: Update council and affordable housing data
+
+# Rebuilds public/data/social-housing.json (council-owned homes, housing association homes and new affordable homes per
+# local authority, England) from the MHCLG statistics, every quarter and on demand from the Actions tab.
+# The build stops, and nothing is committed, if the affordable-housing totals do not match MHCLG's own Live Table 1008C.
+on:
+  schedule:
+    - cron: '41 6 12 1,4,7,10 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download the MHCLG files
+        run: |
+          # The file addresses contain a changing id, so read them from the GOV.UK pages that list the files.
+          get() {  # $1 = page, $2 = file name pattern, $3 = output file
+            url=$(curl -fsSL --retry 2 "$1" | grep -oE "https://assets\.publishing\.service\.gov\.uk/media/[A-Za-z0-9]+/$2" | head -n 1)
+            test -n "$url" || { echo "Could not find $2 on $1"; return 1; }
+            echo "Downloading $url"
+            curl -fsSL --retry 2 -o "$3" "$url"
+          }
+          AHS=https://www.gov.uk/government/statistical-data-sets/live-tables-on-affordable-housing-supply
+          STOCK=https://www.gov.uk/government/statistical-data-sets/live-tables-on-dwelling-stock-including-vacants
+          mkdir -p data-in
+          get "$AHS"   'AHS_[A-Za-z0-9_]*open_data\.csv'        data-in/ahs.csv  || fail=1
+          get "$AHS"   'Live_Tables_1006_to_1008_Completions\.ods' data-in/t1008.ods || fail=1
+          get "$STOCK" 'Live_Table_116\.ods'                    data-in/t116.ods || fail=1
+          get "$STOCK" 'Live_Table_115\.ods'                    data-in/t115.ods || fail=1
+          if [ -n "$fail" ]; then
+            echo "A file could not be found. Download the four files by hand and run: node scripts/build-social-housing.mjs (see scripts/README.md)"
+            exit 1
+          fi
+
+      - name: Install build tools
+        run: npm install --prefix scripts --no-audit --no-fund
+
+      - name: Build and cross-check
+        run: |
+          node scripts/build-social-housing.mjs --ahs data-in/ahs.csv --t116 data-in/t116.ods --t115 data-in/t115.ods --t1008 data-in/t1008.ods
+
+      - name: Test
+        run: node scripts/test-social.mjs
+
+      - name: Commit if changed
+        run: |
+          # "built" is today's date, so compare the data without it.
+          git show HEAD:public/data/social-housing.json 2>/dev/null | sed 's/"built":"[0-9-]*"//' > old.json || true
+          sed 's/"built":"[0-9-]*"//' public/data/social-housing.json > new.json
+          if cmp -s old.json new.json; then
+            echo "No change in housing data."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add public/data/social-housing.json
+            git commit -m "Update council and affordable housing data"
+            git push
+          fi
