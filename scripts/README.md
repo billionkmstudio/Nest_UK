@@ -62,3 +62,27 @@ Things to know:
 - Completions whose authority is not recorded ("LA Unknown", about 6,300 homes since 1993) cannot be shown on an area.
 - A council with fewer than 100 homes has usually transferred its stock to a housing association; the page says so.
 - The page hides the whole block when the file is missing, the place is outside England, or there is nothing to show.
+
+## Social rented homes nearby (Housing tab)
+
+For the searched place the Housing tab also shows how many households within 500 m and 1 km rent from a council or a housing
+association, with a purple dot on the map for each small area (England and Wales). It uses the 2021 Census, not the MHCLG tables above.
+
+- `scripts/build-social-oa.mjs` – joins Census 2021 table TS054 (tenure of household) for output areas (about 125 homes each) with the ONS output area centroids, converts British National Grid to latitude/longitude, and writes `public/data/social-oa/`: `index.json` and one file per 0.25 degree tile (about 395 files, the biggest 73 KB compressed). The page loads only the tiles around the place searched. It also writes `scripts/census2021-social-ltla.json` (what each local authority answered).
+- `public/social.js` – tile keys, distance filter, summary and the England/Wales check, shared by the page, the build scripts and the tests.
+- `scripts/test-social.mjs` – tests with invented data.
+
+Data, all ONS, Open Government Licence v3.0. Census day was 21 March 2021, so it is not current:
+
+1. https://www.nomisweb.co.uk/sources/census_2021_bulk – download TS054 (tenure) and unzip. Needed: `census2021-ts054-oa.csv` and `census2021-ts054-ltla.csv`.
+2. ONS Open Geography Portal – "Output Areas (December 2021) EW Population Weighted Centroids" as CSV (columns X, Y, OA21CD).
+3. `cd scripts && npm install && cd ..`
+4. `node scripts/build-social-oa.mjs --oa <census2021-ts054-oa.csv> --centroids <centroids.csv> --ltla <census2021-ts054-ltla.csv>`
+5. `node scripts/build-social-housing.mjs ...` again (see above) so that the `cr` flags follow the new Census file, then commit `public/data/social-oa/`, `scripts/census2021-social-ltla.json` and `public/data/social-housing.json`.
+
+Things to know:
+
+- The build stops if an output area has no position, if council + other social rented does not equal social rented, or if the output areas differ from the local authority table by more than 0.05%. ONS adjusts small numbers for privacy, so the levels differ by about 0.001% to 0.04%; that is normal.
+- **Council against housing association is only shown where the Census agrees with the council's own stock** (`cr: 1` in `social-housing.json`, 144 of 296 authorities). The Census asks households who their landlord is, and where a council handed its homes to a housing association many tenants still answer "council": Surrey Heath 477 against 11 homes the council owns, Salford 13,599 against 1,207. Where the council still owns homes the two agree within 1% overall (1,554,543 Census against 1,544,554 MHCLG across 157 authorities). The rule is in `councilSplitReliable` (within 20%, at least 1,000 council homes). Elsewhere only council plus housing association is shown.
+- Wales has no MHCLG figures here, so Wales shows the total only.
+- A dot is the population-weighted centre of an output area, not a house. Shared ownership is counted in the figures but has no dots of its own.
