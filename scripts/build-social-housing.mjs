@@ -1,13 +1,15 @@
 // Builds public/data/social-housing.json: council housing stock and affordable housing completions per local authority.
 //
 //   node scripts/build-social-housing.mjs --ahs AHS_open_data.csv --t116 Live_Table_116.ods --t115 Live_Table_115.ods \
-//        [--t1008 Live_Tables_1006_to_1008_Completions.ods] [--out public/data/social-housing.json]
+//        [--t1008 Live_Tables_1006_to_1008_Completions.ods] [--census scripts/census2021-social-ltla.json] [--out public/data/social-housing.json]
 //
 // Sources (MHCLG, Open Government Licence v3.0), England only:
 //   --ahs   Affordable Housing Supply open data CSV (additional affordable homes, by current local authority, tenure and year)
 //   --t116  Live Table 116: local authority (council) owned dwelling stock, by district, from 1979
 //   --t115  Live Table 115: private registered provider (housing association) stock, by district, from 1997
 //   --t1008 Live Tables 1006 to 1008 (Completions): used only to cross-check the CSV totals; the build fails if they disagree
+//   --census  Census 2021 council / other social rented households per authority (written by build-social-oa.mjs); used to set `cr`,
+//             the flag for authorities where the Census "council" answers agree with the council's own stock
 // Tables 115 and 116 report old districts (for example Allerdale, Carlisle and Copeland); Table 116 maps each one to its
 // current authority (LAD24CD, for example Cumberland), and that mapping is used for both tables.
 
@@ -195,8 +197,31 @@ export function crossCheck(supply, file1008, years, oldToCur, nameToCur = new Ma
   return { compared, bad, unmapped: [...unmapped], recoded };
 }
 
-export function build({ ahs, t116, t115, t1008 }) {
+/* Census 2021 asked households who their landlord is. Where a council has handed its homes to a housing association many
+   tenants still answer "council", so the Census "council" count is far above the council's own stock (Surrey Heath: 477
+   against 11). The nearby view therefore only splits council from housing association where the two agree.
+   Census answers per local authority come from scripts/census2021-social-ltla.json (written by build-social-oa.mjs). */
+export const COUNCIL_AGREE = 0.2;      // Census council count within 20% of the council's stock
+export const COUNCIL_MIN_STOCK = 1000; // below this the percentages mean little
+export function councilSplitReliable(stock, censusCouncil) {
+  return stock !== null && stock >= COUNCIL_MIN_STOCK && censusCouncil !== null && Math.abs(censusCouncil - stock) / stock <= COUNCIL_AGREE;
+}
+function readCensus(file, stock) {
+  if (!file || !fs.existsSync(file)) return null;
+  const j = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const sums = new Map(), unmapped = [];
+  for (const [old, v] of Object.entries(j.la || {})) {
+    const cur = stock.oldToCur.get(old) || (stock.curName.has(old) ? old : null);
+    if (!cur) { unmapped.push(old); continue; }
+    sums.set(cur, (sums.get(cur) || 0) + v[0]);
+  }
+  if (unmapped.length) throw new Error('Census local authorities missing from Table 116: ' + unmapped.join(', '));
+  return sums;
+}
+
+export function build({ ahs, t116, t115, t1008, census }) {
   const stock = readStock(t116, t115);
+  const censusCouncil = readCensus(census, stock);
   const supply = readSupply(ahs);
   // The CSV still uses E08000016 (Barnsley) and E08000019 (Sheffield); the stock tables use the codes since 2023.
   // Re-key those by name so that every authority has one code, and keep the old one as an alias.
@@ -229,7 +254,9 @@ export function build({ ahs, t116, t115, t1008 }) {
     const s = {};
     const ys = supply.data.get(code);
     for (const y of years) s[y] = ys && ys.get(y) ? ys.get(y) : [0, 0, 0, 0, 0, 0, 0];
-    la[code] = { n, c: c && c.seen ? c.sum : null, h: h && h.seen ? h.sum : null, s };
+    const cc = c && c.seen ? c.sum : null;
+    la[code] = { n, c: cc, h: h && h.seen ? h.sum : null, s };
+    if (censusCouncil) la[code].cr = councilSplitReliable(cc, censusCouncil.has(code) ? censusCouncil.get(code) : null) ? 1 : 0;
     names[norm(n)] = code;
     if (supply.names.get(code)) names[norm(supply.names.get(code))] = code;
   }
@@ -244,11 +271,12 @@ export function build({ ahs, t116, t115, t1008 }) {
       alias: Object.assign({}, check ? check.recoded : {}, csvAlias),   // other codes that postcodes.io may return for the same authority
       la, names,
     },
-    report: { stockYear: stock.year, years, supplySkipped: supply.skipped, supplySkippedUnits: supply.skippedUnits, check },
+    report: { census: !!censusCouncil, stockYear: stock.year, years, supplySkipped: supply.skipped, supplySkippedUnits: supply.skippedUnits, check },
   };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+  if (!args.census) { const d = new URL('./census2021-social-ltla.json', import.meta.url).pathname; if (fs.existsSync(d)) args.census = d; }
   for (const k of ['ahs', 't116', 't115']) if (!args[k]) { console.error('missing --' + k); process.exit(2); }
   const { out, report } = build(args);
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
@@ -256,6 +284,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   const L = Object.values(out.la);
   const sum = f => L.reduce((a, x) => a + (f(x) || 0), 0);
   console.log('wrote', OUT, fs.statSync(OUT).size, 'bytes,', L.length, 'authorities');
+  if (report.census) console.log('council split reliable (Census agrees with council stock within ' + COUNCIL_AGREE * 100 + '%): ' + L.filter(x => x.cr === 1).length + ' of ' + L.length + ' authorities');
+  else console.log('no Census file: council split flags not written');
   console.log('stock at 31 March ' + report.stockYear + ': council', sum(x => x.c), ' housing association', sum(x => x.h));
   for (const y of out.years) console.log('completions ' + y + ': ' + sum(x => x.s[y].reduce((a, b) => a + b, 0)));
   console.log('CSV rows left out (no current authority code or unknown tenure):', report.supplySkipped, 'rows,', report.supplySkippedUnits, 'homes');
