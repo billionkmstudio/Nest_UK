@@ -53,7 +53,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
@@ -215,6 +215,11 @@ input[type=text],select{width:100%;height:46px;border:1px solid var(--line);bord
 .mapsize{display:none}
 @media (max-width:899px){
   #mapcard:not(.big) .mapbox{height:230px;min-height:0}
+  /* reserve the space of things that appear after the address is found, so nothing already on screen is pushed */
+  body.busy #mapcard[hidden]{display:block;min-height:300px}
+  body.busy #mapcard[hidden]>*{visibility:hidden}
+  body.busy #topics[hidden]{display:flex;min-height:44px}
+  body.busy #results{min-height:60vh}
   #mapcard:not(.big) .uk,#mapcard:not(.big) .mapinfo,#mapcard:not(.big) .maphead h3{display:none}
   #mapcard:not(.big) .maphead{margin-bottom:8px}
   .mapsize{display:block;position:absolute;left:10px;bottom:10px;z-index:700;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 13px var(--body);box-shadow:0 1px 6px rgba(0,0,0,.3);cursor:pointer}
@@ -1482,7 +1487,10 @@ async function runModule(it, mod){
   if (state.running) scheduleRender();
 }
 let rT = 0;
-function scheduleRender(){ if (rT) return; rT = setTimeout(() => { rT = 0; if (state.running) render(); }, 250); }
+/* While modules are still loading, only the map is refreshed (its box has a fixed height). The results list is built
+   once, when the run finishes: rebuilding #results every 250ms made each card grow in place and pushed everything
+   below it down (the main source of layout shift). */
+function scheduleRender(){ if (rT) return; rT = setTimeout(() => { rT = 0; if (state.running) refreshMap(); }, 250); }
 
 /* ---------- run ---------- */
 async function run(){
@@ -1500,6 +1508,7 @@ async function run(){
   state.items = qs.map((q, i) => ({q, i, status:'geocoding', mod:{}, errs:{}}));
   syncUrl(); $('#sharebar').hidden = false;
   state.digests = [];
+  document.body.classList.add('busy');   /* phones: reserve the map / tabs / results space until the run finishes */
   state.topic = 'overview'; setTopicLayers('overview');
   $('#results').innerHTML = ''; $('#topics').hidden = true; if (!canLanding()) $('#mapcard').hidden = true; $('#more').hidden = true; if (!canLanding()) $('#intro').hidden = true;
   renderStatus();
@@ -1525,6 +1534,7 @@ async function run(){
   state.topic = 'overview';
   $('#status').hidden = true;
   if (!first) expandSearch(false);   /* nothing could be found: give the form back so it can be fixed */
+  document.body.classList.remove('busy');
   render();
 }
 
@@ -2765,7 +2775,9 @@ function applyTheme(th){
   $('#profile').onchange = e => { state.profile = e.target.value; if (!state.running && state.items.length) render(); };
   $('#topics').addEventListener('click', e => {
     const b = e.target.closest('button[data-topic]'); if (!b) return;
-    state.topic = b.dataset.topic; setTopicLayers(state.topic); track('topic', state.topic); render();
+    state.topic = b.dataset.topic; setTopicLayers(state.topic); track('topic', state.topic);
+    $$('#topics button').forEach(x => x.setAttribute('aria-selected', String(x === b)));   /* respond at once... */
+    requestAnimationFrame(() => setTimeout(render, 0));                                    /* ...then do the heavy rebuild after the next paint */
   });
   $('#maptabs').addEventListener('click', e => {
     const b = e.target.closest('button[data-i]'); if (!b) return;
