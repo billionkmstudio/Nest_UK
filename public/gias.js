@@ -72,15 +72,36 @@
 
   function cellKey(lat, lng) { return Math.floor(lat / CELL) + ',' + Math.floor(lng / CELL); }
 
+  function addRow(byUrn, grid, r) {
+    var rec = { urn: r[0], name: r[1], cls: r[2], phase: PHASE_NAME[r[3]] || 'unknown', la: r[4], ln: r[5], faith: !!r[6] };
+    byUrn[rec.urn] = rec;
+    var k = cellKey(rec.la, rec.ln);
+    (grid[k] || (grid[k] = [])).push(rec);
+  }
+
   function buildIndex(rows) {
     var byUrn = {}, grid = {};
-    rows.forEach(function (r) {
-      var rec = { urn: r[0], name: r[1], cls: r[2], phase: PHASE_NAME[r[3]] || 'unknown', la: r[4], ln: r[5], faith: !!r[6] };
-      byUrn[rec.urn] = rec;
-      var k = cellKey(rec.la, rec.ln);
-      (grid[k] || (grid[k] = [])).push(rec);
-    });
+    for (var i = 0; i < rows.length; i++) addRow(byUrn, grid, rows[i]);
     return { byUrn: byUrn, grid: grid, size: rows.length };
+  }
+
+  /* Same result as buildIndex, but hands the main thread back every `chunk` rows so a tap or keypress during
+     the build is not blocked (INP). Browser only; scripts and tests keep using the synchronous buildIndex. */
+  function yieldToMain() {
+    if (typeof scheduler !== 'undefined' && scheduler && typeof scheduler.yield === 'function') return scheduler.yield();
+    return new Promise(function (res) { setTimeout(res, 0); });
+  }
+
+  function buildIndexAsync(rows, chunk) {
+    chunk = chunk > 0 ? chunk : 2500;
+    var byUrn = {}, grid = {}, i = 0;
+    function step() {
+      var end = Math.min(i + chunk, rows.length);
+      for (; i < end; i++) addRow(byUrn, grid, rows[i]);
+      if (i >= rows.length) return Promise.resolve({ byUrn: byUrn, grid: grid, size: rows.length });
+      return yieldToMain().then(step);
+    }
+    return step();
   }
 
   function urnFromTags(tags) {
@@ -128,6 +149,7 @@
     mapPhase: mapPhase,
     hasFaith: hasFaith,
     buildIndex: buildIndex,
+    buildIndexAsync: buildIndexAsync,
     match: match,
     similarity: similarity,
     urnFromTags: urnFromTags,
