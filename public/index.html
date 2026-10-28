@@ -1487,10 +1487,9 @@ async function runModule(it, mod){
   if (state.running) scheduleRender();
 }
 let rT = 0;
-/* While modules are still loading, only the map is refreshed (its box has a fixed height). The results list is built
-   once, when the run finishes: rebuilding #results every 250ms made each card grow in place and pushed everything
-   below it down (the main source of layout shift). */
-function scheduleRender(){ if (rT) return; rT = setTimeout(() => { rT = 0; if (state.running) refreshMap(); }, 250); }
+/* Results are filled in as modules finish, so one slow data source (e.g. the public Overpass servers) never hides
+   the rest. Rebuilds are coalesced to at most one per second to keep layout shift low. */
+function scheduleRender(){ if (rT) return; rT = setTimeout(() => { rT = 0; if (state.running) render(); }, 1000); }
 
 /* ---------- run ---------- */
 async function run(){
