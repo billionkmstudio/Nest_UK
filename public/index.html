@@ -131,6 +131,7 @@ a{color:var(--accent)}
   body.landing #viewgrp,body.landing .mapinfo>.foot,body.landing .mapinfo>#loc,body.landing #maptabs{display:none!important}
   body.landing .get{grid-template-columns:1fr}
   body.two #mapcard{position:fixed;top:0;right:0;bottom:0;left:var(--side);z-index:1;margin:0;padding:0;border:0;border-radius:0;background:var(--surface-2)}
+  body.landing #mapcard[hidden]{display:block}   /* map area is reserved from the first paint; JS only fills it */
   body.two.sidehide #mapcard{left:0}
   body.two .mapbox{position:absolute;inset:0;height:auto;min-height:0;border-radius:0}
   body.two .maphead{position:absolute;top:12px;left:12px;z-index:700;margin:0;gap:8px;flex-wrap:nowrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
@@ -418,49 +419,66 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 </style>
 </head>
 <body>
+<script>
+/* Decide the wide-screen layout before the first paint (same rule as canLanding() below), so the page does not
+   reflow when the main script runs. */
+if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
+</script>
 <div class="wrap">
   <header class="top">
     <a class="brand" href="/" aria-label="Nest UK – home">
       <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11.5 12 4l8.5 7.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></svg></div>
       <div><b>Nest UK</b><small class="sub" data-i18n="brandSub">UK area explorer</small><small class="todaym" id="todayM"></small></div>
     </a>
-    <div class="tools"><span class="today" id="today" aria-live="off"></span><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode"></button><div class="lang" role="group" aria-label="Language">
+    <div class="tools"><span class="today" id="today" aria-live="off"></span><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode">☾</button><div class="lang" role="group" aria-label="Language">
       <button type="button" id="lang-en" aria-pressed="true">EN</button>
       <button type="button" id="lang-zh" aria-pressed="false">中文</button>
     </div></div>
   </header>
+  <script>
+  /* Fill the date now (same formatting as renderToday() below) so the header keeps its width on first paint. */
+  (function(){
+    try{
+      var l = null; try{ l = localStorage.getItem('nest-lang'); }catch(e){}
+      var zh = (l || (/^zh/i.test(navigator.language || '') ? 'zh' : 'en')) === 'zh';
+      var s = new Date().toLocaleDateString(zh ? 'zh-HK' : 'en-GB', {timeZone:'Europe/London', weekday:'short', day:'numeric', month:'short', year:'numeric'});
+      document.getElementById('today').textContent = s;
+      document.getElementById('todayM').textContent = s;
+    }catch(e){}
+  })();
+  </script>
 
   <main class="stack">
     <div class="colL">
     <section id="searchsec">
-      <button type="button" class="sbar" id="sbar" aria-expanded="false"><span class="sq" id="sbarTxt"></span><span class="se" id="sbarEdit" data-i18n="editSearch"></span></button>
+      <button type="button" class="sbar" id="sbar" aria-expanded="false"><span class="sq" id="sbarTxt"></span><span class="se" id="sbarEdit" data-i18n="editSearch">Edit search</span></button>
       <h1 data-i18n="heroH">Look up a place, learn more.</h1>
       <p class="lede" data-i18n="heroP">Type any address or postcode in England, Wales or Northern Ireland. See where it is on the map, with the crime, flood risk, schools, stations, roads, shops and sport around it. Compare up to three places side by side.</p>
 
       <form class="card" id="form" autocomplete="off">
-        <label class="cap" for="q0" data-i18n="addrLabel"></label>
+        <label class="cap" for="q0" data-i18n="addrLabel">Address or postcode</label>
         <div style="margin-top:10px">
-          <div class="addr"><span class="chip a">A</span><input type="text" id="q0" inputmode="text" data-i18n-ph="ph"></div>
-          <div class="addr rm" id="row1" hidden><span class="chip b">B</span><input type="text" id="q1" data-i18n-ph="ph"><button type="button" class="linkbtn rmrow" data-row="row1" aria-label="Remove">✕</button></div>
-          <div class="addr rm" id="row2" hidden><span class="chip c">C</span><input type="text" id="q2" data-i18n-ph="ph"><button type="button" class="linkbtn rmrow" data-row="row2" aria-label="Remove">✕</button></div>
+          <div class="addr"><span class="chip a">A</span><input placeholder="e.g. M13 9WL or 10 High Street, Reading" type="text" id="q0" inputmode="text" data-i18n-ph="ph"></div>
+          <div class="addr rm" id="row1" hidden><span class="chip b">B</span><input placeholder="e.g. M13 9WL or 10 High Street, Reading" type="text" id="q1" data-i18n-ph="ph"><button type="button" class="linkbtn rmrow" data-row="row1" aria-label="Remove">✕</button></div>
+          <div class="addr rm" id="row2" hidden><span class="chip c">C</span><input placeholder="e.g. M13 9WL or 10 High Street, Reading" type="text" id="q2" data-i18n-ph="ph"><button type="button" class="linkbtn rmrow" data-row="row2" aria-label="Remove">✕</button></div>
         </div>
-        <button type="button" class="linkbtn" id="addMore" data-i18n="addMore"></button>
+        <button type="button" class="linkbtn" id="addMore" data-i18n="addMore">+ Add another address</button>
 
         <div class="opts">
           <div class="opt">
-            <span class="cap" data-i18n="radiusLabel"></span>
+            <span class="cap" data-i18n="radiusLabel">Crime area around the address</span>
             <div class="seg" role="radiogroup">
-              <label><input type="radio" name="radius" value="300"><span data-i18n="r300"></span></label>
-              <label><input type="radio" name="radius" value="600" checked><span data-i18n="r600"></span></label>
-              <label><input type="radio" name="radius" value="1609"><span data-i18n="r1609"></span></label>
+              <label><input type="radio" name="radius" value="300"><span data-i18n="r300">300 m · 4 min walk</span></label>
+              <label><input type="radio" name="radius" value="600" checked><span data-i18n="r600">600 m · 8 min walk</span></label>
+              <label><input type="radio" name="radius" value="1609"><span data-i18n="r1609">1 mile</span></label>
             </div>
           </div>
           <input type="hidden" id="profile" value="balanced">
         </div>
 
         <div class="row">
-          <button class="btn" type="submit" id="go" data-i18n="go"></button>
-          <div class="ex"><span data-i18n="tryEx"></span><button type="button" id="ex1">M13 9WL vs RG6 6UR</button></div>
+          <button class="btn" type="submit" id="go" data-i18n="go">Check these addresses</button>
+          <div class="ex"><span data-i18n="tryEx">Try an example:</span><button type="button" id="ex1">M13 9WL vs RG6 6UR</button></div>
         </div>
         <div class="recent" id="recent" hidden></div>
         <p class="msg" id="msg" role="alert" hidden></p>
@@ -471,20 +489,20 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 
     <section class="card" id="intro">
       <div class="get">
-        <div><b data-i18n="g_safety"></b><span data-i18n="g_safety_d"></span></div>
-        <div><b data-i18n="g_flood"></b><span data-i18n="g_flood_d"></span></div>
-        <div><b data-i18n="g_schools"></b><span data-i18n="g_schools_d"></span></div>
-        <div><b data-i18n="g_life"></b><span data-i18n="g_life_d"></span></div>
-        <div><b data-i18n="g_roads"></b><span data-i18n="g_roads_d"></span></div>
+        <div><b data-i18n="g_safety">Safety</b><span data-i18n="g_safety_d">12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.</span></div>
+        <div><b data-i18n="g_flood">Flood risk</b><span data-i18n="g_flood_d">Environment Agency river and sea risk, plus live flood warnings (England).</span></div>
+        <div><b data-i18n="g_schools">Schools</b><span data-i18n="g_schools_d">Nursery, primary, secondary and university nearby, each school with an Ofsted link.</span></div>
+        <div><b data-i18n="g_life">Shops, food &amp; sport</b><span data-i18n="g_life_d">Supermarkets, shopping centres, High Street, Chinese food and leisure centres.</span></div>
+        <div><b data-i18n="g_roads">Transport</b><span data-i18n="g_roads_d">Railway stations, bus routes and stops, motorways and A-roads, shown on the map.</span></div>
       </div>
     </section>
 
     <section class="card" id="mapcard" hidden>
       <div class="maphead">
-        <h3 class="sec" data-i18n="mapTitle"></h3>
-        <div class="maptools"><button type="button" class="iconbtn appOnly" id="sideBtn" aria-label="Panel"></button><button type="button" class="iconbtn appOnly" id="layersBtn" aria-pressed="true" data-i18n="btn_layers"></button><div class="view" role="group" aria-label="Base map">
-          <button type="button" id="bmap" aria-pressed="true" data-i18n="base_map"></button>
-          <button type="button" id="bsat" aria-pressed="false" data-i18n="base_sat"></button>
+        <h3 class="sec" data-i18n="mapTitle">Where is it?</h3>
+        <div class="maptools"><button type="button" class="iconbtn appOnly" id="sideBtn" aria-label="Hide panel">◀ Hide panel</button><button type="button" class="iconbtn appOnly" id="layersBtn" aria-pressed="true" data-i18n="btn_layers">Layers</button><div class="view" role="group" aria-label="Base map">
+          <button type="button" id="bmap" aria-pressed="true" data-i18n="base_map">Map</button>
+          <button type="button" id="bsat" aria-pressed="false" data-i18n="base_sat">Satellite</button>
         </div><div class="view" id="viewgrp" role="group" aria-label="Map view">
           <button type="button" id="v2d" aria-pressed="true">2D</button>
           <button type="button" id="v3d" aria-pressed="false">3D</button>
@@ -496,12 +514,12 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
         <div id="map3d" role="img" aria-label="3D map"></div>
         <div class="uk" aria-hidden="true"><div id="ukmap"></div><small id="ukcap"></small></div>
         <div class="mapnote" id="mapnote" role="status"></div>
-        <button type="button" class="mapsize" id="mapSize" aria-pressed="false"></button>
+        <button type="button" class="mapsize" id="mapSize" aria-pressed="false">Expand map</button>
       </div>
       <div class="mapinfo">
       <p class="loc" id="loc"></p>
-      <p class="loc foot" data-i18n="mapFoot"></p>
-      <p class="tag" id="satcredit" hidden data-i18n="sat_credit"></p>
+      <p class="loc foot" data-i18n="mapFoot">Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.</p>
+      <p class="tag" id="satcredit" hidden data-i18n="sat_credit">Imagery © Esri, Maxar, Earthstar Geographics</p>
       <div class="layers" id="layers"></div>
       <div class="legend" id="legend"></div>
       <p class="livebar" id="livebar" role="status" hidden></p>
@@ -516,16 +534,16 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 
     <section id="more" hidden class="stack">
       <div>
-        <h3 class="sec" data-i18n="alsoTitle"></h3>
+        <h3 class="sec" data-i18n="alsoTitle">Worth checking too</h3>
         <div class="links">
-          <a href="https://check-long-term-flood-risk.service.gov.uk/" target="_blank" rel="noopener"><b data-i18n="l_flood"></b><span data-i18n="l_flood_d"></span></a>
-          <a href="https://reports.ofsted.gov.uk/" target="_blank" rel="noopener"><b data-i18n="l_school"></b><span data-i18n="l_school_d"></span></a>
-          <a href="https://checker.ofcom.org.uk/" target="_blank" rel="noopener"><b data-i18n="l_bb"></b><span data-i18n="l_bb_d"></span></a>
-          <a href="https://www.tax.service.gov.uk/check-council-tax-band/search" target="_blank" rel="noopener"><b data-i18n="l_ct"></b><span data-i18n="l_ct_d"></span></a>
+          <a href="https://check-long-term-flood-risk.service.gov.uk/" target="_blank" rel="noopener"><b data-i18n="l_flood">Flood risk</b><span data-i18n="l_flood_d">GOV.UK long-term flood risk check</span></a>
+          <a href="https://reports.ofsted.gov.uk/" target="_blank" rel="noopener"><b data-i18n="l_school">Schools</b><span data-i18n="l_school_d">Ofsted inspection reports</span></a>
+          <a href="https://checker.ofcom.org.uk/" target="_blank" rel="noopener"><b data-i18n="l_bb">Broadband</b><span data-i18n="l_bb_d">Ofcom broadband and mobile checker</span></a>
+          <a href="https://www.tax.service.gov.uk/check-council-tax-band/search" target="_blank" rel="noopener"><b data-i18n="l_ct">Council tax band</b><span data-i18n="l_ct_d">GOV.UK check a property’s band</span></a>
         </div>
       </div>
       <details>
-        <summary data-i18n="howTitle"></summary>
+        <summary data-i18n="howTitle">How the crime score works</summary>
         <div id="how"></div>
       </details>
     </section>
@@ -534,8 +552,8 @@ footer{margin-top:28px;color:var(--muted);font-size:12.5px;display:flex;flex-dir
 
   <footer>
     <span id="ver"></span>
-    <span data-i18n="disclaimer"></span>
-    <span data-i18n="attrib"></span>
+    <span data-i18n="disclaimer">Important: the crime risk score is an experimental indicator based on publicly available police.uk data. Crime, flood and map data may be incomplete or delayed, a lower score does not guarantee safety, and nothing here is advice on whether to rent or buy. Always visit the area yourself.</span>
+    <span data-i18n="attrib">Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Housing: Ministry of Housing, Communities and Local Government and Census 2021, Office for National Statistics (Open Government Licence v3.0). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.</span>
     <span>© 2026 Billion Studio · <a href="mailto:info@billionstudio.app">info@billionstudio.app</a> · <a href="https://billionstudio.co.uk" target="_blank" rel="noopener">billionstudio.co.uk</a></span>
   </footer>
 </div>
@@ -740,7 +758,11 @@ function loadGias(){
       const r = await fetch('/data/schools.json');
       if (!r.ok) return;
       const j = await r.json();
-      if (j && j.v === 1 && Array.isArray(j.rows) && j.rows.length > 1000){ GIAS.index = NestGias.buildIndex(j.rows); GIAS.built = j.built; }
+      if (j && j.v === 1 && Array.isArray(j.rows) && j.rows.length > 1000){
+        /* chunked build that yields to the main thread, so taps and typing stay responsive while it runs */
+        GIAS.index = NestGias.buildIndexAsync ? await NestGias.buildIndexAsync(j.rows) : NestGias.buildIndex(j.rows);
+        GIAS.built = j.built;
+      }
     }catch(e){}
     GIAS.tried = true;
   })();
@@ -2777,6 +2799,15 @@ function applyTheme(th){
     b.disabled = true;
     retry(+parts[0], parts[1]);
   });
+  /* Warm the school-type data (about 1.7 MB) once the page is idle, so a search never pays for the download and
+     the index build. Skipped on Data Saver: those visitors fetch it when they actually search. */
+  try{
+    const cn = navigator.connection;
+    if (!(cn && cn.saveData)){
+      const idle = window.requestIdleCallback || (fn => setTimeout(fn, 3000));
+      idle(() => { try{ loadGias(); }catch(e){} }, {timeout:8000});
+    }
+  }catch(e){}
 })();
 </script>
 </body>
