@@ -2775,6 +2775,11 @@ function applyTheme(th){
   $('#topics').addEventListener('click', e => {
     const b = e.target.closest('button[data-topic]'); if (!b) return;
     state.topic = b.dataset.topic; setTopicLayers(state.topic); track('topic', state.topic);
+    if (window.innerWidth >= 900){   /* housing: open the layers panel so the council-house toggle is visible; close it again on leaving */
+      if (state.topic === 'housing'){ state.lyAuto = true; document.body.classList.remove('lyroff'); }
+      else if (state.lyAuto){ state.lyAuto = false; document.body.classList.add('lyroff'); }
+      $('#layersBtn').setAttribute('aria-pressed', String(!document.body.classList.contains('lyroff')));
+    }
     $$('#topics button').forEach(x => x.setAttribute('aria-selected', String(x === b)));   /* respond at once... */
     requestAnimationFrame(() => setTimeout(render, 0));                                    /* ...then do the heavy rebuild after the next paint */
   });
@@ -2792,7 +2797,7 @@ function applyTheme(th){
   });
   $('#themeBtn').onclick = () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; try{ localStorage.setItem('nest-theme', state.theme); }catch(e){} applyTheme(state.theme); };
   $('#sideBtn').onclick = () => { document.body.classList.toggle('sidehide'); sideLabel(); setTimeout(relayoutMaps, 60); };
-  $('#layersBtn').onclick = () => { const off = document.body.classList.toggle('lyroff'); $('#layersBtn').setAttribute('aria-pressed', !off); };
+  $('#layersBtn').onclick = () => { state.lyAuto = false; const off = document.body.classList.toggle('lyroff'); $('#layersBtn').setAttribute('aria-pressed', !off); };
   $('#bmap').onclick = () => setBase('map');
   $('#bsat').onclick = () => setBase('sat');
   $('#v2d').onclick = () => setView('2d');
