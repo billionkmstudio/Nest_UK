@@ -107,8 +107,10 @@ td.n,th.n{text-align:right;white-space:nowrap}.btn{display:inline-block;backgrou
 .mut{color:var(--mut);font-size:14px}.links a{display:inline-block;margin:4px 10px 4px 0}footer{padding-bottom:40px;margin-top:32px;color:var(--mut);font-size:13px}svg{max-width:100%;height:auto}`;
 
 const FOOT_EN = `<footer><p>Sources: crime data from <a href="https://data.police.uk/">data.police.uk</a>; school data from the Department for Education <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>. Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.</p>
-<p>Figures are recorded crimes within about 600 m of the town centre, not a rate per resident, and busy town centres record more crime because more people pass through. Use them to compare areas, then check the exact address.</p></footer>`;
-const FOOT_ZH = `<footer><p>資料來源：罪案數字來自 <a href="https://data.police.uk/">data.police.uk</a>；學校資料來自英國教育部 <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>。內容包含根據 <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a> 授權的公共部門資料。</p>\n<p>數字為市中心約 600 米範圍內警方記錄的罪案宗數，並非按居民人口計算的比率；人流較多的市中心記錄的罪案自然較多。請用來比較不同地區，再查看確實地址。地名及學校名稱保留英文，方便搜尋及核對。</p></footer>`;
+<p>Figures are recorded crimes within about 600 m of the town centre, not a rate per resident, and busy town centres record more crime because more people pass through. Use them to compare areas, then check the exact address.</p>
+<p><a href="/privacy">About &amp; privacy</a></p></footer>`;
+const FOOT_ZH = `<footer><p>資料來源：罪案數字來自 <a href="https://data.police.uk/">data.police.uk</a>；學校資料來自英國教育部 <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>。內容包含根據 <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a> 授權的公共部門資料。</p>\n<p>數字為市中心約 600 米範圍內警方記錄的罪案宗數，並非按居民人口計算的比率；人流較多的市中心記錄的罪案自然較多。請用來比較不同地區，再查看確實地址。地名及學校名稱保留英文，方便搜尋及核對。</p>
+<p><a href="/privacy">About &amp; privacy（英文）</a></p></footer>`;
 
 function layout({ title, desc, path: p, crumbs, h1, body, noindex, ld, lang = 'en' }) {
   const zh = lang === 'zh';
