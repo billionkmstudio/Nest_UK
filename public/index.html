@@ -433,7 +433,7 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
   <header class="top">
     <a class="brand" href="/" aria-label="Nest UK – home">
       <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 11.5 12 4l8.5 7.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></svg></div>
-      <div><b>Nest UK</b><small class="sub" data-i18n="brandSub">UK area explorer</small><small class="todaym" id="todayM"></small></div>
+      <div><b>Nest UK</b><small class="sub" data-i18n="brandSub">Crime, schools &amp; flood risk</small><small class="todaym" id="todayM"></small></div>
     </a>
     <div class="tools"><span class="today" id="today" aria-live="off"></span><button type="button" class="themebtn" id="themeBtn" aria-label="Night mode">☾</button><div class="lang" role="group" aria-label="Language">
       <button type="button" id="lang-en" aria-pressed="true">EN</button>
@@ -457,8 +457,8 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
     <div class="colL">
     <section id="searchsec">
       <button type="button" class="sbar" id="sbar" aria-expanded="false"><span class="sq" id="sbarTxt"></span><span class="se" id="sbarEdit" data-i18n="editSearch">Edit search</span></button>
-      <h1 data-i18n="heroH">Look up a place, learn more.</h1>
-      <p class="lede" data-i18n="heroP">Type any address or postcode in England, Wales or Northern Ireland. See where it is on the map, with the crime, flood risk, schools, stations, roads, shops and sport around it. Compare up to three places side by side.</p>
+      <h1 data-i18n="heroH">Check any UK address before you rent or buy</h1>
+      <p class="lede" data-i18n="heroP">Enter an address or postcode in England, Wales or Northern Ireland. See crime, flood risk, schools, transport and local amenities on one map. Compare up to three places side by side. Free.</p>
 
       <form class="card" id="form" autocomplete="off">
         <label class="cap" for="q0" data-i18n="addrLabel">Address or postcode</label>
@@ -482,7 +482,7 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
         </div>
 
         <div class="row">
-          <button class="btn" type="submit" id="go" data-i18n="go">Check these addresses</button>
+          <button class="btn" type="submit" id="go" data-i18n="go">Check area</button>
           <div class="ex"><span data-i18n="tryEx">Try an example:</span><button type="button" id="ex1">M13 9WL vs RG6 6UR</button></div>
         </div>
         <div class="recent" id="recent" hidden></div>
@@ -497,7 +497,7 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
         <div><b data-i18n="g_safety">Safety</b><span data-i18n="g_safety_d">12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.</span></div>
         <div><b data-i18n="g_flood">Flood risk</b><span data-i18n="g_flood_d">Environment Agency river and sea risk, plus live flood warnings (England).</span></div>
         <div><b data-i18n="g_schools">Schools</b><span data-i18n="g_schools_d">Nursery, primary, secondary and university nearby, each school with an Ofsted link.</span></div>
-        <div><b data-i18n="g_life">Shops, food &amp; sport</b><span data-i18n="g_life_d">Supermarkets, shopping centres, High Street, Chinese food and leisure centres.</span></div>
+        <div><b data-i18n="g_life">Shops, food &amp; leisure</b><span data-i18n="g_life_d">Supermarkets, shopping centres, High Street, restaurants and leisure centres.</span></div>
         <div><b data-i18n="g_roads">Transport</b><span data-i18n="g_roads_d">Railway stations, bus routes and stops, motorways and A-roads, shown on the map.</span></div>
       </div>
     </section>
@@ -559,7 +559,7 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
     <span id="ver"></span>
     <span data-i18n="disclaimer">Important: the crime risk score is an experimental indicator based on publicly available police.uk data. Crime, flood and map data may be incomplete or delayed, a lower score does not guarantee safety, and nothing here is advice on whether to rent or buy. Always visit the area yourself.</span>
     <span data-i18n="attrib">Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Housing: Ministry of Housing, Communities and Local Government and Census 2021, Office for National Statistics (Open Government Licence v3.0). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.</span>
-    <span>© 2026 Billion Studio · <a href="mailto:info@billionstudio.app">info@billionstudio.app</a> · <a href="https://billionstudio.co.uk" target="_blank" rel="noopener">billionstudio.co.uk</a></span>
+    <span><a href="/privacy" data-i18n="privLink">About &amp; privacy</a> · © 2026 Billion Studio · <a href="mailto:info@billionstudio.app">info@billionstudio.app</a> · <a href="https://billionstudio.co.uk" target="_blank" rel="noopener">billionstudio.co.uk</a></span>
   </footer>
 </div>
 
@@ -947,19 +947,19 @@ function roadBand(d){ return d == null ? 3 : d < 300 ? 0 : d < 800 ? 1 : d < 150
 /* ---------- i18n ---------- */
 const T = {
   en:{
-    brandSub:'UK area explorer',
-    heroH:'Look up a place, learn more.',
-    heroP:'Type any address or postcode in England, Wales or Northern Ireland. See where it is on the map, with the crime, flood risk, schools, stations, roads, shops and sport around it. Compare up to three places side by side.',
+    brandSub:'Crime, schools & flood risk',
+    heroH:'Check any UK address before you rent or buy',
+    heroP:'Enter an address or postcode in England, Wales or Northern Ireland. See crime, flood risk, schools, transport and local amenities on one map. Compare up to three places side by side. Free.',
     addrLabel:'Address or postcode', ph:'e.g. M13 9WL or 10 High Street, Reading', addMore:'+ Add another address',
     radiusLabel:'Crime area around the address', r300:'300 m · 4 min walk', r600:'600 m · 8 min walk', r1609:'1 mile',
-    profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use transit',
-    go:'Check these addresses', tryEx:'Try an example:', recent:'Recent:', recent_clear:'Clear', share_btn:'Share this search', share_copied:'Link copied', share_manual:'Copy this link:', editSearch:'Edit search',
+    profileLabel:'Weight the crime score for', p_balanced:'Balanced', p_driver:'I drive', p_family:'Family home', p_walker:'I walk or use public transport',
+    go:'Check area', tryEx:'Try an example:', recent:'Recent:', recent_clear:'Clear', share_btn:'Share this search', share_copied:'Link copied', share_manual:'Copy this link:', editSearch:'Edit search',
     needAddr:'Enter at least one address or postcode.',
     placeHint:'Place-name search: results are centred on the middle of this area. For exact answers, search a street address or postcode.',
     g_safety:'Safety', g_safety_d:'12 months of reported crime, scored for break-ins, vehicles, personal safety and nuisance.',
     g_flood:'Flood risk', g_flood_d:'Environment Agency river and sea risk, plus live flood warnings (England).',
     g_schools:'Schools', g_schools_d:'Nursery, primary, secondary and university nearby, each school with an Ofsted link.',
-    g_life:'Shops, food & sport', g_life_d:'Supermarkets, shopping centres, High Street, Chinese food and leisure centres.',
+    g_life:'Shops, food & leisure', g_life_d:'Supermarkets, shopping centres, High Street, restaurants and leisure centres.',
     g_roads:'Transport', g_roads_d:'Railway stations, bus routes and stops, motorways and A-roads, shown on the map.',
     tab_overview:'Overview', tab_safety:'Safety', tab_flood:'Flood', tab_schools:'Schools', tab_life:'Daily life', tab_roads:'Transport', tab_housing:'Housing',
     hp_trend:'Average price, last 12 months', hp_trend_alt:'Average price from {a} ({p}) to {b} ({q})', hp_h:'House prices', hp_load:'Loading house price data…', hp_avg:'Average price (all homes)', hp_det:'Detached', hp_semi:'Semi-detached', hp_terr:'Terraced', hp_flat:'Flat / maisonette', hp_chg:'Change over 12 months', hp_month:'Latest data: {m}. Source: HM Land Registry UK House Price Index.', hp_err:'House price data could not be loaded for this area.', hp_none:'House price data needs the data service to be set up, so it is not shown here.', hp_note:'This is an average for the whole council area, so it hides big differences between streets and between cheap and expensive neighbourhoods. It is based on completed sales, not current asking prices. Use it only as a rough guide.', hp_norent:'Average rents are not shown yet.', hp_link:'UK House Price Index (HM Land Registry) ↗',
@@ -971,8 +971,8 @@ const T = {
     crimeScot:'Crime figures are not available for Scotland, because Police Scotland data is not part of the police.uk open data used here. Schools, transport, shops and the other information for this address are still shown.',
     errGeo:'The address lookup service did not respond. Try again in a moment.',
     unavailable:'Could not load this data.', retry:'Try again', naShort:'n/a', none:'None',
-    cmpTitle:'At a glance', cmpOverall:'Overall crime risk score (0–100, lower = fewer reports)', cmpTotal:'Reported crimes a year', cmpTrend:'Recent trend', cmpTop:'Most common', best:'best', metric:'Measure',
-    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', map_expand:'Expand map', map_collapse:'Shrink map', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Fetching data… {s}s. This can take up to a minute or longer because the public map servers can be slow. Results appear as each part arrives, so please wait.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
+    cmpTitle:'At a glance', cmpOverall:'Crime level (0–100, lower = fewer reports)', cmpTotal:'Reported crimes a year', cmpTrend:'Recent trend', cmpTop:'Most common', best:'best', metric:'Measure',
+    risk:'{b} risk', b0:'Very low', b1:'Low', b2:'Moderate', b3:'High', b4:'Very high', btn_layers:'Layers', map_expand:'Expand map', map_collapse:'Shrink map', fl_gov:'Check on GOV.UK ↗', fl_gov_note:'Long-term flood risk is not shown here. Please check this address on the official GOV.UK flood checker.', side_hide:'Hide panel', side_show:'Show panel', st_wait:'Loading data… {s}s. Results appear as each part arrives.', scoreHint:'Score out of 100. The lower the number, the lower the reported crime rate.', base_map:'Map', base_sat:'Satellite', theme_to_dark:'Switch to night mode', theme_to_light:'Switch to day mode', sat_credit:'Imagery © Esri, Maxar, Earthstar Geographics', rl0:'Very low risk', rl1:'Low risk', rl2:'Moderate risk', rl3:'More reports than most', rl4:'Many reports', crimeCtx:'This counts police reports in the area. Busy town and city centres almost always score higher because more people, shops and nightlife mean more reports — it says little about everyday life on a quiet residential street.', mapFoot:'Map data is from OpenStreetMap volunteers. Very new estates may not show buildings or shops yet.',
     within:'within {r}', mWithin:'{r} m', mile:'1 mile',
     headline:'{total} reported crimes a year within {r}. Most common: {cat} ({pct}%). Highest risk area: {grp} ({score}).',
     perYear:'{n} {u} a year',
@@ -1053,6 +1053,7 @@ const T = {
     howTitle:'How the crime score works',
     how:'<p>Each of the four crime areas below is the number of reported crimes per square kilometre per year, placed on a log scale. 0 means at or below the low anchor, 100 means at or above the high anchor.</p><ul>{rows}</ul><p>The overall crime score is a weighted average of the four, using the weights for the option you chose. The anchors are fixed values chosen for this tool, not an official ranking, so the score is best used to compare addresses with each other.</p><p>Only reported crime is counted. Months with unusually few records are left out as probable data gaps. Flood, schools, shops, sport and roads are shown as facts and distances, not scored.</p>',
     howRow:'{g}: 0 at {lo}, 100 at {hi} per km² per year',
+    privLink:'About & privacy',
     disclaimer:'Important: the crime risk score is an experimental indicator based on publicly available police.uk data. Crime, flood and map data may be incomplete or delayed, a lower score does not guarantee safety, and nothing here is advice on whether to rent or buy. Always visit the area yourself.',
     attrib:'Crime: police.uk (Open Government Licence v3.0). Flood: Environment Agency (Open Government Licence). Housing: Ministry of Housing, Communities and Local Government and Census 2021, Office for National Statistics (Open Government Licence v3.0). Postcodes: postcodes.io. School types: Department for Education, Get Information about Schools (Open Government Licence v3.0). Schools, shops, food, sport, stations, roads, addresses and map: © OpenStreetMap contributors.'
   },
@@ -1158,6 +1159,7 @@ const T = {
     howTitle:'罪案分數如何計算',
     how:'<p>下面四個罪案範疇，都是以「每平方公里每年的已報案罪案數目」按對數刻度換算。0 代表等於或低於下限，100 代表等於或高於上限。</p><ul>{rows}</ul><p>罪案整體分數是四個範疇的加權平均，權重按你選擇的側重而定。上下限是為本工具設定的固定數值，並非官方排名，最適合用來比較不同地址。</p><p>只計算已報案的罪案。紀錄異常地少的月份會視為數據缺漏而剔除。水浸、學校、商鋪、運動和道路只列出事實和距離，不計分。</p>',
     howRow:'{g}：每平方公里每年 {lo} 宗為 0 分，{hi} 宗為 100 分',
+    privLink:'關於及私隱',
     disclaimer:'重要提示：罪案風險分數是根據 police.uk 公開數據得出的實驗性指標。罪案、水浸和地圖數據可能不完整或有延遲，分數較低不代表安全，本頁內容亦不構成租樓或買樓建議。請一定親身到當區看看。',
     attrib:'罪案：police.uk（Open Government Licence v3.0）。水浸：環境署（Open Government Licence）。房屋：英國住房、社區及地方政府部，及 2021 年人口普查（英國國家統計局）（Open Government Licence v3.0）。郵編：postcodes.io。學校類型：英國教育部 Get Information about Schools（Open Government Licence v3.0）。學校、商鋪、食肆、運動、火車站、道路、地址及地圖：© OpenStreetMap contributors。'
   }
