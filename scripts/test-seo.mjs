@@ -1,7 +1,7 @@
 // Tests for scripts/build-areas.mjs and src/seo.js with made-up data (no network).
 globalThis.__FAST = true;
 import worker from '../src/worker.js';
-import { resetMemo, prepare, route, sitemapXml } from '../src/seo.js';
+import { resetMemo, prepare, route, sitemapXml, countyFromPath } from '../src/seo.js';
 import { buildAreas, summariseCrime, summariseSchools, monthList, slugify } from './build-areas.mjs';
 
 let fails = 0; const check = (n, ok, x) => { if (!ok) fails++; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' -> ' + JSON.stringify(x))); };
@@ -48,7 +48,17 @@ check('thin town is noindex', tiny.indexable === false);
 const sm = sitemapXml(D);
 check('sitemap excludes noindex town', !sm.includes('/tiny') && sm.includes('/uk/surrey/gamma-town/crime') && sm.includes('/best/safest-towns-in-surrey'), sm);
 
-const store = { 'https://x.test/data/areas.json': JSON.stringify(out) };
+// Surrey is a county of towns; Birmingham is a city of neighbourhoods ("areas"); Liverpool has a file but is not in the index.
+const quiet = { slug: 'quiet', name: 'Quiet', county: 'surrey', lat: 51.5, lng: -0.1, crime: { months: months.map(m => ({ m, n: 0 })), total: 0, perMonth: 0, cats: {} }, schools: { primary1mi: 0, secondary3mi: 0, independent2mi: 0, nearestPrimary: [], nearestSecondary: [] } };
+const surreyData = Object.assign({}, out, { towns: out.towns.concat([quiet]) });
+const brumData = Object.assign({}, out, { county: 'birmingham', countyName: 'Birmingham', unit: 'areas', towns: out.towns.map(t => Object.assign({}, t, { county: 'birmingham' })) });
+const regionIndex = { v: 1, regions: [{ county: 'surrey', countyName: 'Surrey', unit: 'towns' }, { county: 'birmingham', countyName: 'Birmingham', unit: 'areas' }] };
+const store = {
+  'https://x.test/data/areas/index.json': JSON.stringify(regionIndex),
+  'https://x.test/data/areas/surrey.json': JSON.stringify(surreyData),
+  'https://x.test/data/areas/birmingham.json': JSON.stringify(brumData),
+  'https://x.test/data/areas/liverpool.json': JSON.stringify(Object.assign({}, brumData, { county: 'liverpool', countyName: 'Liverpool' })),
+};
 const env = { ASSETS: { fetch: async (req) => store[req.url] ? new Response(store[req.url]) : new Response('nf', { status: 404 }) } };
 const get = async (p, e = env) => { const r = await worker.fetch(new Request('https://x.test' + p), e, { waitUntil() {} }); return { r, t: await r.text() }; };
 resetMemo();
@@ -70,6 +80,43 @@ check('no data file: sitemap falls back to homepage only', x.r.status === 200 &&
 x = await get('/uk/surrey/gamma-town', { ASSETS: { fetch: async () => new Response('nf', { status: 404 }) } });
 check('no data file: pages 404 (not a crash)', x.r.status === 404);
 check('pages contain no raw template placeholders', !/\{R\}|undefined|NaN|\[object/.test((await get('/uk/surrey/gamma-town')).t));
+/* ---- more than one region ---- */
+resetMemo();
+check('countyFromPath picks the region out of every kind of path', countyFromPath('/uk/surrey/gamma-town/crime') === 'surrey' && countyFromPath('/zh/uk/birmingham') === 'birmingham' && countyFromPath('/best/safest-areas-in-birmingham') === 'birmingham' && countyFromPath('/zh/best/safest-towns-in-surrey/') === 'surrey' && countyFromPath('/uk') === null && countyFromPath('/') === null && countyFromPath('/uk/../etc') === null);
+x = await get('/uk');
+check('/uk lists the regions in the index, not an unlisted one', x.r.status === 200 && x.t.includes('href="/uk/surrey"') && x.t.includes('href="/uk/birmingham"') && x.t.includes('/best/safest-areas-in-birmingham') && x.t.includes('/best/safest-towns-in-surrey') && !x.t.includes('liverpool') && x.t.includes('hreflang="zh-HK" href="https://nestuk.co.uk/zh/uk"') && !x.t.includes('noindex'), x.t.slice(0, 120));
+x = await get('/uk/'); check('/uk/ with a trailing slash works too', x.r.status === 200 && x.t.includes('href="/uk/birmingham"'));
+x = await get('/zh/uk'); check('/zh/uk is Chinese and lists the regions', x.r.status === 200 && x.t.includes('<html lang="zh-HK">') && x.t.includes('地區指南') && x.t.includes('/zh/uk/birmingham') && x.t.includes('伯明翰') && x.t.includes('hreflang="en-GB" href="https://nestuk.co.uk/uk"'));
+x = await get('/uk/birmingham');
+const noName = t => t.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]*>/g, ' ').replace(/Gamma Town/g, 'Gamma');
+const brumText = noName(x.t);
+check('city page: "areas" wording, no "town" anywhere in the text', x.r.status === 200 && x.t.includes('Birmingham areas compared') && x.t.includes('/best/safest-areas-in-birmingham') && x.t.includes('/uk/birmingham/gamma-town') && !/\btowns?\b/i.test(brumText), brumText.match(/.{30}\btowns?\b.{20}/i));
+x = await get('/uk/birmingham/gamma-town');
+const brumTown = noName(x.t);
+check('city area page: title, canonical, wording', x.r.status === 200 && /<title>Gamma Town, Birmingham/.test(x.t) && x.t.includes('<link rel="canonical" href="https://nestuk.co.uk/uk/birmingham/gamma-town">') && brumTown.includes('Birmingham areas') && brumTown.includes('Nearby areas') && !/\btowns?\b/i.test(brumTown), brumTown.match(/.{30}\btowns?\b.{20}/i));
+x = await get('/uk/birmingham/gamma-town/schools'); check('city schools page has no "town centre"', x.r.status === 200 && !/town/i.test(noName(x.t)) && /centre of (the|each) area/.test(x.t));
+x = await get('/best/safest-areas-in-birmingham'); check('city ranking page lives at safest-areas-in', x.r.status === 200 && x.t.includes('Safest areas in Birmingham') && x.t.includes('<link rel="canonical" href="https://nestuk.co.uk/best/safest-areas-in-birmingham">'));
+x = await get('/best/safest-towns-in-birmingham'); check('city ranking is not served under the towns URL', x.r.status === 404);
+x = await get('/best/safest-areas-in-surrey'); check('county ranking is not served under the areas URL', x.r.status === 404);
+x = await get('/uk/liverpool'); check('a region with a file but not in the index is 404', x.r.status === 404 && x.t.includes('noindex'));
+x = await get('/zh/uk/liverpool/gamma-town'); check('same for the Chinese pages', x.r.status === 404);
+x = await get('/zh/uk/birmingham/gamma-town'); check('zh city page: 地區 wording, no 市鎮, Chinese region name', x.r.status === 200 && x.t.includes('伯明翰') && x.t.includes('地區') && !x.t.includes('市鎮') && !x.t.includes('市中心'), x.t.replace(/<[^>]*>/g, ' ').match(/.{20}(市鎮|市中心).{20}/));
+x = await get('/zh/best/safest-areas-in-birmingham'); check('zh city ranking page', x.r.status === 200 && x.t.includes('最安全地區排名'));
+x = await get('/zh/uk/surrey/gamma-town'); check('zh county pages keep 市鎮 wording', x.t.includes('市鎮') && x.t.includes('市中心'));
+x = await get('/sitemap.xml');
+check('sitemap covers every region once, the hub, and nothing from an unlisted region', x.t.includes('<loc>https://nestuk.co.uk/uk</loc>') && x.t.includes('/uk/surrey/gamma-town/crime') && x.t.includes('/uk/birmingham/gamma-town/crime') && x.t.includes('/best/safest-areas-in-birmingham') && x.t.includes('/zh/uk/birmingham') && !x.t.includes('liverpool') && !x.t.includes('/tiny') && !x.t.includes('/quiet'), x.t.slice(0, 200));
+x = await get('/uk/surrey/quiet/crime'); check('a place with no recorded crimes does not crash the crime page', x.r.status === 200 && x.t.includes('noindex') && !x.t.includes('Top category'));
+x = await get('/zh/uk/surrey/quiet/crime'); check('same for the Chinese crime page', x.r.status === 200 && x.t.includes('noindex'));
+const idxOnly = { 'https://x.test/data/areas/index.json': JSON.stringify(regionIndex) };
+resetMemo();
+x = await get('/uk/birmingham', { ASSETS: { fetch: async (req) => idxOnly[req.url] ? new Response(idxOnly[req.url]) : new Response('nf', { status: 404 }) } });
+check('listed region with a missing file: 404, not a crash', x.r.status === 404);
+resetMemo();
+const evil = { 'https://x.test/data/areas/index.json': JSON.stringify({ v: 1, regions: [{ county: '../secret' }, { county: 'surrey', countyName: 'Surrey' }] }), 'https://x.test/data/areas/surrey.json': JSON.stringify(surreyData) };
+x = await get('/sitemap.xml', { ASSETS: { fetch: async (req) => evil[req.url] ? new Response(evil[req.url]) : new Response('nf', { status: 404 }) } });
+check('index entries that are not plain slugs are ignored', x.r.status === 200 && x.t.includes('/uk/surrey/gamma-town') && !x.t.includes('secret'));
+resetMemo();
+
 /* ---- place outline rule (public/place.js) ---- */
 import { createRequire } from 'node:module';
 const { placeArea } = createRequire(import.meta.url)('../public/place.js');

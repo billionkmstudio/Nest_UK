@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Builds public/data/areas.json: per-town crime and school statistics used by the SEO pages (src/seo.js).
-//   node scripts/build-areas.mjs            (needs network: data.police.uk; reads public/data/schools.json)
-// Crime = street-level crimes inside a fixed 1.2 km square (600 m each way) around the town point, last 12 months.
-// The same square for every town keeps towns comparable. A town whose fetch fails keeps its previous numbers.
+// Builds public/data/areas/<region>.json (and index.json): per-town crime and school statistics used by the SEO pages (src/seo.js).
+//   node scripts/build-areas.mjs            all enabled regions in scripts/areas/*.json (needs network: data.police.uk; reads public/data/schools.json)
+//   node scripts/build-areas.mjs surrey     one region only
+// A region is a county of towns or a city split into neighbourhoods. A region with "enabled": false is skipped, so its
+// town points can be checked (scripts/check-area-points.mjs) before any numbers go live.
+// Crime = street-level crimes inside a fixed 1.2 km square (600 m each way) around the point, last 12 months.
+// The same square for every place keeps them comparable. A place whose fetch fails keeps its previous numbers.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +14,16 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const POLICE = 'https://data.police.uk/api/';
 export const RADIUS_M = 600;
 const UA = 'NestUK-areas/1.0 (+https://nestuk.co.uk)';
+
+// scripts/areas/<region>.json files, in name order. Each file name must match its "county" field.
+export function loadRegionConfigs(rootDir = root) {
+  const dir = path.join(rootDir, 'scripts/areas');
+  return fs.readdirSync(dir).filter(f => /^[a-z0-9-]+\.json$/.test(f)).sort().map(f => {
+    const c = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    if (c.county !== f.replace(/\.json$/, '')) throw new Error(f + ': "county" must be "' + f.replace(/\.json$/, '') + '"');
+    return c;
+  });
+}
 
 export const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -97,17 +110,33 @@ export async function buildAreas({ fetchFn = fetch, schoolRows, config, previous
     log(name + ': ' + (crime ? crime.total + ' crimes' : 'no crime data'));
     towns.push({ slug, name, county: config.county, lat, lng, crime, schools: summariseSchools(schoolRows, lat, lng) });
   }
-  return { v: 1, built: new Date().toISOString().slice(0, 10), latest, radiusM: RADIUS_M, county: config.county, countyName: config.countyName, towns };
+  return { v: 1, built: new Date().toISOString().slice(0, 10), latest, radiusM: RADIUS_M, county: config.county, countyName: config.countyName, unit: config.unit === 'areas' ? 'areas' : 'towns', towns };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const config = JSON.parse(fs.readFileSync(path.join(root, 'scripts/areas.json'), 'utf8'));
+  const only = process.argv[2] || '';
+  const configs = loadRegionConfigs().filter(c => c.enabled !== false);
+  if (only && !configs.some(c => c.county === only)) { console.error('No enabled region "' + only + '". Enabled: ' + configs.map(c => c.county).join(', ')); process.exit(1); }
   const schools = JSON.parse(fs.readFileSync(path.join(root, 'public/data/schools.json'), 'utf8'));
-  const outFile = path.join(root, 'public/data/areas.json');
-  let previous = null; try { previous = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch (e) {}
-  const out = await buildAreas({ schoolRows: schools.rows, config, previous, log: console.log });
-  const ok = out.towns.filter(t => t.crime).length;
-  if (ok < config.towns.length * 0.8) { console.error('Only ' + ok + ' of ' + config.towns.length + ' towns have crime data; not writing.'); process.exit(1); }
-  fs.writeFileSync(outFile, JSON.stringify(out));
-  console.log('Wrote ' + outFile + ' (' + ok + ' towns with crime data, latest month ' + out.latest + ')');
+  const outDir = path.join(root, 'public/data/areas');
+  fs.mkdirSync(outDir, { recursive: true });
+  let written = 0;
+  for (const config of configs) {
+    if (only && only !== config.county) continue;
+    const outFile = path.join(outDir, config.county + '.json');
+    let previous = null; try { previous = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch (e) {}
+    console.log('== ' + config.countyName + ' (' + config.towns.length + ' places)');
+    const out = await buildAreas({ schoolRows: schools.rows, config, previous, log: console.log });
+    const ok = out.towns.filter(t => t.crime).length;
+    // one region failing (police.uk hiccup) must not block the others: keep its previous file and say so
+    if (ok < config.towns.length * 0.8) { console.log('::warning::' + config.countyName + ': only ' + ok + ' of ' + config.towns.length + ' places have crime data, so the previous file is kept.'); continue; }
+    fs.writeFileSync(outFile, JSON.stringify(out));
+    written++;
+    console.log('Wrote ' + outFile + ' (' + ok + ' places with crime data, latest month ' + out.latest + ')');
+  }
+  // index.json lists every enabled region that has a data file; the site only serves regions listed here
+  const regions = configs.filter(c => fs.existsSync(path.join(outDir, c.county + '.json')))
+    .map(c => ({ county: c.county, countyName: c.countyName, unit: c.unit === 'areas' ? 'areas' : 'towns' }));
+  fs.writeFileSync(path.join(outDir, 'index.json'), JSON.stringify({ v: 1, regions }));
+  if (!written) { console.error('No region was written.'); process.exit(1); }
 }

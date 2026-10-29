@@ -5,7 +5,7 @@
 //   /api/flood  flood-risk band (Environment Agency)
 //   /api/crime-last-updated, /api/crime  police.uk street crime, edge-cached
 //   /api/flood-warnings  live flood warnings (Environment Agency), edge-cached
-//   /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas.json (src/seo.js)
+//   /uk, /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas/<region>.json (src/seo.js)
 //   /api/weather  3-day forecast (MET Norway), edge-cached
 //   /api/e  anonymous usage counts (Workers Analytics Engine, binding EVENTS), see src/events.js
 //   /api/overpass?kind=edu|extra|life|roads|bus|cars  OpenStreetMap places, edge-cached
@@ -536,7 +536,7 @@ export default {
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
-    if (url.pathname === '/sitemap.xml' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/') || url.pathname.startsWith('/zh/')) return seoHandler(request, env, ctx, url);
+    if (url.pathname === '/sitemap.xml' || url.pathname === '/uk' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/') || url.pathname.startsWith('/zh/')) return seoHandler(request, env, ctx, url);
     return env.ASSETS.fetch(request);
   },
 };

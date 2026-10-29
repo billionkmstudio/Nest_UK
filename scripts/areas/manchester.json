@@ -1,0 +1,21 @@
+{
+  "county": "manchester",
+  "countyName": "Manchester",
+  "unit": "areas",
+  "enabled": false,
+  "note": "DRAFT coordinates, not yet checked. Run the 'Check area page town points' workflow for this region, fix every CHECK row, then set enabled to true. Mostly areas inside Manchester city plus a few well-known neighbours (Salford Quays, Stretford, Old Trafford, Sale, Altrincham, Stockport). Crime is counted within 600 m of the point, so keep it on the main street or the middle of the neighbourhood.",
+  "towns": [
+    ["City Centre", 53.4810, -2.2400], ["Ancoats", 53.4848, -2.2270],
+    ["Castlefield", 53.4748, -2.2535], ["Hulme", 53.4650, -2.2510], ["Moss Side", 53.4555, -2.2410],
+    ["Rusholme", 53.4545, -2.2205], ["Fallowfield", 53.4430, -2.2145],
+    ["Withington", 53.4290, -2.2300], ["Didsbury", 53.4175, -2.2290], ["Chorlton", 53.4425, -2.2745],
+    ["Whalley Range", 53.4505, -2.2600], ["Longsight", 53.4530, -2.2050], ["Levenshulme", 53.4435, -2.1925],
+    ["Burnage", 53.4265, -2.1980], ["Gorton", 53.4695, -2.1650], ["Openshaw", 53.4720, -2.1820],
+    ["Ardwick", 53.4710, -2.2200], ["Clayton", 53.4865, -2.1800], ["Miles Platting", 53.4905, -2.2050],
+    ["Newton Heath", 53.5045, -2.1890], ["Cheetham Hill", 53.5090, -2.2380], ["Harpurhey", 53.5150, -2.2080],
+    ["Blackley", 53.5320, -2.2150], ["Moston", 53.5265, -2.1750], ["Wythenshawe", 53.3870, -2.2645],
+    ["Northenden", 53.4025, -2.2605], ["Salford Quays", 53.4708, -2.2965], ["Old Trafford", 53.4555, -2.2890],
+    ["Stretford", 53.4465, -2.3085], ["Sale", 53.4245, -2.3220], ["Altrincham", 53.3865, -2.3490],
+    ["Stockport", 53.4085, -2.1580]
+  ]
+}
