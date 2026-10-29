@@ -1,20 +1,27 @@
 name: Check area page town points
 
-# Manual only. Compares the town points in scripts/areas.json with OpenStreetMap place outlines and writes a table
-# (and suggested coordinates) to the run summary. It changes nothing.
+# Manual only. Compares the points in scripts/areas/<region>.json with OpenStreetMap place outlines and writes a table
+# (and suggested coordinates) to the run summary. It changes nothing. Also checks regions with "enabled": false.
 on:
   workflow_dispatch:
+    inputs:
+      region:
+        description: 'Region to check: surrey, birmingham, manchester, liverpool, or all'
+        required: true
+        default: 'all'
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Compare points
+        env:
+          REGION: ${{ inputs.region }}
         run: |
-          node scripts/check-area-points.mjs --json | tee report.txt
+          node scripts/check-area-points.mjs "$REGION" --json | tee report.txt
           { echo '```'; cat report.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

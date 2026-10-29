@@ -1,0 +1,21 @@
+{
+  "county": "birmingham",
+  "countyName": "Birmingham",
+  "unit": "areas",
+  "enabled": false,
+  "note": "DRAFT coordinates, not yet checked. Run the 'Check area page town points' workflow for this region, fix every CHECK row, then set enabled to true. Crime is counted within 600 m of the point, so keep it on the main street or the middle of the neighbourhood.",
+  "towns": [
+    ["City Centre", 52.4788, -1.8998], ["Jewellery Quarter", 52.4893, -1.9125], ["Digbeth", 52.4750, -1.8890],
+    ["Brindleyplace", 52.4760, -1.9115], ["Ladywood", 52.4780, -1.9270], ["Edgbaston", 52.4600, -1.9200],
+    ["Harborne", 52.4560, -1.9570], ["Selly Oak", 52.4415, -1.9360], ["Selly Park", 52.4470, -1.9250],
+    ["Bournville", 52.4283, -1.9330], ["Stirchley", 52.4290, -1.9110], ["Cotteridge", 52.4170, -1.9190],
+    ["Kings Norton", 52.4150, -1.9330], ["Northfield", 52.4075, -1.9680], ["Longbridge", 52.3960, -1.9800],
+    ["Moseley", 52.4440, -1.8885], ["Kings Heath", 52.4295, -1.8955], ["Balsall Heath", 52.4545, -1.8960],
+    ["Sparkbrook", 52.4540, -1.8760], ["Sparkhill", 52.4500, -1.8650], ["Hall Green", 52.4370, -1.8480],
+    ["Acocks Green", 52.4445, -1.8190], ["Small Heath", 52.4665, -1.8520], ["Bordesley Green", 52.4745, -1.8490],
+    ["Alum Rock", 52.4880, -1.8500], ["Saltley", 52.4880, -1.8620], ["Nechells", 52.4935, -1.8740],
+    ["Aston", 52.5000, -1.8860], ["Lozells", 52.4990, -1.9100],
+    ["Handsworth", 52.5090, -1.9280], ["Perry Barr", 52.5160, -1.8990], ["Erdington", 52.5250, -1.8320],
+    ["Kingstanding", 52.5420, -1.8800], ["Sutton Coldfield", 52.5630, -1.8240], ["Yardley", 52.4775, -1.7990]
+  ]
+}

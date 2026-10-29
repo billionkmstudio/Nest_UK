@@ -20,12 +20,25 @@ Data: DfE, Open Government Licence v3.0.
 
 ## Area pages (`/uk/...`)
 
-`scripts/areas.json` lists the towns (name and centre point). `node scripts/build-areas.mjs` fetches 12 months of
-police.uk street crime inside a fixed 1.2 km square around each point, adds school counts from `public/data/schools.json`,
-and writes `public/data/areas.json`. `src/seo.js` renders the pages from that file: town, crime and schools pages,
-the county page, the "safest towns" ranking and `/sitemap.xml`. A town with fewer than 30 recorded crimes is marked
-`noindex` and left out of the sitemap and ranking. The workflow `update-areas.yml` runs this on the 22nd of each month;
-run it by hand the first time from the Actions tab. Until `areas.json` exists the pages return 404 and the sitemap lists only the homepage.
+A **region** is a county of towns (Surrey) or a city split into neighbourhoods (Birmingham, Manchester, Liverpool).
+Each has a file `scripts/areas/<region>.json` with its places (name and centre point), `"unit": "towns"` or `"areas"`
+(this only changes the wording and the ranking URL: `/best/safest-towns-in-surrey`, `/best/safest-areas-in-birmingham`)
+and `"enabled"`. `node scripts/build-areas.mjs [region]` fetches 12 months of police.uk street crime inside a fixed
+1.2 km square around each point, adds school counts from `public/data/schools.json`, and writes
+`public/data/areas/<region>.json` plus `public/data/areas/index.json` (the list of regions the site serves).
+A region whose build fails keeps its previous file, so one police.uk hiccup does not block the others.
+`src/seo.js` renders the pages from those files: `/uk` (all regions), region, town, crime and schools pages, the
+"safest" ranking and `/sitemap.xml`. A place with fewer than 30 recorded crimes is marked `noindex` and left out of the
+sitemap and ranking. The workflow `update-areas.yml` runs this on the 22nd of each month; run it by hand the first
+time from the Actions tab. Until a region's file exists its pages return 404 and the sitemap leaves it out.
+Schools come from the DfE register, which covers England only, so add only English regions.
+
+**Adding a region.** Copy an existing file in `scripts/areas/`, keep `"county"` equal to the file name, set
+`"enabled": false`, and list the places. Run the workflow *Check area page town points* for that region: it compares each
+point with the OpenStreetMap outline of the place and marks anything more than 400 m off (or found in another region)
+as CHECK. Fix those points (a large neighbourhood can be flagged even when its point is fine, so look at the metres),
+set `"enabled": true`, then run *Update area pages data*. Keep points at least about 1 km apart: two 1.2 km squares
+that overlap heavily give near-identical numbers.
 Tests: `node scripts/test-seo.mjs`.
 
 ## Council and affordable housing (Housing tab)

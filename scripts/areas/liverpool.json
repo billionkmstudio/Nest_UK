@@ -1,0 +1,18 @@
+{
+  "county": "liverpool",
+  "countyName": "Liverpool",
+  "unit": "areas",
+  "enabled": false,
+  "note": "DRAFT coordinates, not yet checked. Run the 'Check area page town points' workflow for this region, fix every CHECK row, then set enabled to true. Areas inside Liverpool city only (the check compares the place name with 'Liverpool'). Crime is counted within 600 m of the point, so keep it on the main street or the middle of the neighbourhood.",
+  "towns": [
+    ["City Centre", 53.4050, -2.9850], ["Albert Dock", 53.3999, -2.9916], ["Baltic Triangle", 53.3965, -2.9790],
+    ["Georgian Quarter", 53.4005, -2.9690], ["Toxteth", 53.3880, -2.9670], ["Dingle", 53.3790, -2.9700],
+    ["Lark Lane", 53.3835, -2.9505], ["Aigburth", 53.3630, -2.9400], ["Mossley Hill", 53.3730, -2.9220],
+    ["Allerton", 53.3600, -2.8930], ["Garston", 53.3570, -2.9080], ["Woolton", 53.3715, -2.8700],
+    ["Childwall", 53.3925, -2.8960], ["Wavertree", 53.4005, -2.9385], ["Edge Hill", 53.4060, -2.9540],
+    ["Old Swan", 53.4085, -2.9145], ["Knotty Ash", 53.4090, -2.8960], ["West Derby", 53.4285, -2.9115],
+    ["Tuebrook", 53.4250, -2.9400], ["Norris Green", 53.4410, -2.9180], ["Anfield", 53.4305, -2.9610],
+    ["Everton", 53.4185, -2.9715], ["Kirkdale", 53.4395, -2.9830], ["Fazakerley", 53.4640, -2.9460],
+    ["Speke", 53.3440, -2.8790]
+  ]
+}
