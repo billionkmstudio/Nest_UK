@@ -150,6 +150,25 @@ function schoolSentence(t, D) {
   if (q) bits.push('The nearest state secondary is ' + q.name + ' (' + miles(q.d) + ').');
   return bits.join(' ');
 }
+/* Independent (fee-paying) schools. The DfE register gives them no phase, age range or fees, so they are listed by name and
+   distance only. Data built before the list existed has no nearestIndependent and falls back to the old 2-mile sentence. */
+const hasIndep = s => !!s && Array.isArray(s.nearestIndependent) && typeof s.independent5mi === 'number';
+function indepSentence(t, D, names) {
+  const s = t.schools, n = s.independent5mi, l = s.nearestIndependent, U = unitOf(D);
+  if (!n) return 'The DfE register lists no independent (fee-paying) schools within 5 miles of ' + U.centre + ' of ' + t.name + '.';
+  const first = l.slice(0, 3).map(x => x.name + ' (' + miles(x.d) + ')');
+  return 'There ' + (n === 1 ? 'is 1 independent (fee-paying) school' : 'are ' + n + ' independent (fee-paying) schools') + ' within 5 miles of ' + U.centre + ' of ' + t.name +
+    (names && first.length ? ', the nearest being ' + joinNames(first) : '') + '.';
+}
+function indepTable(list) {
+  return `<table><tr><th>School</th><th class="n">Distance</th></tr>${list.map(x => `<tr><td><a href="${gias(x.urn)}" rel="nofollow noopener">${esc(x.name)}</a>${x.faith ? ' <span class="mut">(faith school)</span>' : ''}</td><td class="n">${miles(x.d)}</td></tr>`).join('')}</table>`;
+}
+function indepSection(t, D) {
+  const s = t.schools;
+  if (!hasIndep(s)) return `<p>There ${s.independent2mi === 1 ? 'is 1 independent (fee-paying) school' : 'are ' + s.independent2mi + ' independent (fee-paying) schools'} within 2 miles; these are not counted above.</p>`;
+  const l = s.nearestIndependent;
+  return `<h2>Independent (private) schools near ${esc(t.name)}</h2><p>${esc(indepSentence(t, D, false))}${s.independent5mi > l.length ? ' The nearest ' + l.length + ' are listed below.' : ''} The DfE register does not record age range or fees for independent schools, and the list can include specialist and special-needs schools, so check each school’s own website for ages taught, fees and admissions. These schools are not counted in the state school figures above.</p>${l.length ? indepTable(l) : ''}`;
+}
 const joinNames = names => names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : (names[0] || '');
 const relWord = (a, b) => a > b ? 'more than' : a < b ? 'fewer than' : 'the same as';
 
@@ -247,6 +266,7 @@ function townPage(t, D) {
     ['What are the most common crimes in ' + t.name + '?', 'The most common recorded categories within ' + D.radiusM + ' m of the centre are ' + cats.map(x => pretty(x.c).toLowerCase() + ' (' + x.pct + '%)').join(', ') + '.'],
     ['Are there good schools near ' + t.name + '?', schoolSentence(t, D) + ' School quality is not rated here: check Ofsted and the school’s own information before deciding.'],
   ];
+  if (hasIndep(s)) faq.push(['Are there private schools near ' + t.name + '?', indepSentence(t, D, true) + ' Fees and ages are not in the DfE register, so check each school’s own website.']);
   const nearby = t.nearby.length ? `<h2>Nearby ${U.pl}</h2><ul>${t.nearby.map(o => `<li><a href="${townPath(o)}">${esc(o.name)}</a> – ${ordinal(o.rank)} of ${D.count} for lowest recorded crime</li>`).join('')}</ul>` : '';
   const body = `<p>${esc(crimeSentence(t, D))}</p>
 <div class="card"><table><tr><th>Measure</th><th class="n">${esc(t.name)}</th></tr>
@@ -255,7 +275,8 @@ function townPage(t, D) {
 ${t.indexable ? `<tr><td>Rank (1 = lowest crime of ${D.count} ${esc(D.countyName)} ${U.pl})</td><td class="n">${t.rank}</td></tr>` : ''}
 <tr><td>State primary schools within 1 mile</td><td class="n">${s.primary1mi}</td></tr>
 <tr><td>State secondary schools within 3 miles</td><td class="n">${s.secondary3mi}</td></tr>
-<tr><td>Independent schools within 2 miles</td><td class="n">${s.independent2mi}</td></tr></table></div>
+<tr><td>Independent schools within 2 miles</td><td class="n">${s.independent2mi}</td></tr>
+${hasIndep(s) ? `<tr><td>Independent schools within 5 miles</td><td class="n">${s.independent5mi}</td></tr>` : ''}</table></div>
 ${cta(t, D)}
 <div class="links"><a href="${townPath(t)}/crime">Crime in ${esc(t.name)} in detail →</a><a href="${townPath(t)}/schools">Schools near ${esc(t.name)} →</a></div>
 <h2>Schools</h2><p>${esc(schoolSentence(t, D))}</p>
@@ -300,13 +321,13 @@ function schoolsPage(t, D) {
   const body = `<p>${esc(schoolSentence(t, D))}</p>
 <h2>Nearest state primary schools</h2>${schoolTable(s.nearestPrimary)}
 <h2>Nearest state secondary schools</h2>${schoolTable(s.nearestSecondary)}
-<p>There ${s.independent2mi === 1 ? 'is 1 independent (fee-paying) school' : 'are ' + s.independent2mi + ' independent (fee-paying) schools'} within 2 miles; these are not counted above.</p>
+${indepSection(t, D)}
 <h2>How to read this</h2><p>School types come from the Department for Education’s register (GIAS), so academies and free schools count as state schools. Distances are in a straight line from ${U.centre}; a school’s admissions area, catchment and Ofsted rating matter more than distance, so check each school’s own page before choosing a home.</p>
 ${ctx ? `<h2>How ${esc(t.name)} compares</h2><p>${esc(ctx)}</p>` : ''}${nearbySchoolsTable(t, D)}
 ${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a href="${townPath(t)}/crime">Crime in ${esc(t.name)}</a> · <a href="${bestPath(D)}">Safest ${U.pl} in ${esc(D.countyName)}</a></p>${stamp(D)}`;
   return layout({ D,
-    title: 'Schools near ' + t.name + ', ' + D.countyName + ': state primary and secondary | Nest UK',
-    desc: s.primary1mi + ' state primary schools within 1 mile and ' + s.secondary3mi + ' state secondary schools within 3 miles of ' + t.name + ', with distances and DfE links.',
+    title: 'Schools near ' + t.name + ', ' + D.countyName + (hasIndep(s) ? ': state and private (independent) | Nest UK' : ': state primary and secondary | Nest UK'),
+    desc: s.primary1mi + ' state primary schools within 1 mile and ' + s.secondary3mi + ' state secondary schools within 3 miles of ' + t.name + (hasIndep(s) && s.independent5mi ? ', plus ' + s.independent5mi + ' independent (private) ' + (s.independent5mi === 1 ? 'school' : 'schools') + ' within 5 miles' : '') + ', with distances and DfE links.',
     path: townPath(t) + '/schools', h1: 'Schools near ' + t.name + ', ' + D.countyName, body, noindex: !t.indexable,
     crumbs: [['Home', '/'], [D.countyName, '/uk/' + t.county], [t.name, townPath(t)], ['Schools', townPath(t) + '/schools']],
   });
@@ -381,6 +402,19 @@ function zhSchoolSentence(t, D) {
   if (q) bits.push('最近的公立中學是 ' + q.name + '（' + zhMiles(q.d) + '）。');
   return bits.join('');
 }
+function zhIndepSentence(t, D, names) {
+  const s = t.schools, n = s.independent5mi, l = s.nearestIndependent, U = unitOf(D);
+  if (!n) return '英國教育部登記冊中，' + t.name + ' ' + U.zhC + ' 5 英里內沒有私立（independent，需繳學費）學校。';
+  const first = l.slice(0, 3).map(x => x.name + '（' + zhMiles(x.d) + '）');
+  return t.name + ' ' + U.zhC + ' 5 英里內有 ' + n + ' 間私立（independent，需繳學費）學校' + (names && first.length ? '，最近的是 ' + first.join('、') : '') + '。';
+}
+function zhIndepSection(t, D) {
+  const s = t.schools, U = unitOf(D);
+  if (!hasIndep(s)) return `<p>2 英里內有 ${s.independent2mi} 間私立（independent，需繳學費）學校，不計入上面的數字。</p>`;
+  const l = s.nearestIndependent;
+  const table = l.length ? `<table><tr><th>學校</th><th class="n">距離</th></tr>${l.map(x => `<tr><td><a href="${gias(x.urn)}" rel="nofollow noopener">${esc(x.name)}</a>${x.faith ? ' <span class="mut">（宗教學校）</span>' : ''}</td><td class="n">${zhMiles(x.d)}</td></tr>`).join('')}</table>` : '';
+  return `<h2>${esc(t.name)} 附近的私立學校（independent）</h2><p>${esc(zhIndepSentence(t, D, false))}${s.independent5mi > l.length ? '以下列出最近的 ' + l.length + ' 間。' : ''}英國教育部登記冊沒有記錄私立學校的收生年齡及學費，名單也可能包括特殊教育或專科學校，請到各校網站查詢收生年齡、學費及入學安排。這些學校不計入上面的公立學校數字。</p>${table}`;
+}
 const zhRel = (a, b) => a > b ? '多於' : a < b ? '少於' : '等於';
 function zhCrimeContext(t, D) {
   if (!t.indexable) return '';
@@ -425,6 +459,7 @@ function zhTownPage(t, D) {
     [t.name + ' 最常見的罪案類型是什麼？', U.zhC + ' ' + D.radiusM + ' 米範圍內，記錄最多的類別是 ' + cats.map(x => zhCat(x.c) + '（' + x.pct + '%）').join('、') + '。'],
     [t.name + ' 附近有好學校嗎？', zhSchoolSentence(t, D) + '本頁不評級學校，決定前請查看 Ofsted 報告及學校自己的資料。'],
   ];
+  if (hasIndep(s)) faq.push([t.name + ' 附近有私立學校嗎？', zhIndepSentence(t, D, true) + '教育部登記冊沒有學費及收生年齡資料，請到各校網站查詢。']);
   const nearby = t.nearby.length ? `<h2>附近${U.zh}</h2><ul>${t.nearby.map(o => `<li><a href="${zhPath(townPath(o))}">${esc(o.name)}</a>：在 ${D.count} 個${U.zh}中罪案宗數由低至高排第 ${o.rank} 位</li>`).join('')}</ul>` : '';
   const body = `<p>${esc(zhCrimeSentence(t, D))}</p>
 <div class="card"><table><tr><th>項目</th><th class="n">${esc(t.name)}</th></tr>
@@ -433,7 +468,8 @@ function zhTownPage(t, D) {
 ${t.indexable ? `<tr><td>排名（1 = ${D.count} 個 ${esc(D.countyName)} ${U.zh}中罪案最少）</td><td class="n">${t.rank}</td></tr>` : ''}
 <tr><td>1 英里內公立小學</td><td class="n">${s.primary1mi} 間</td></tr>
 <tr><td>3 英里內公立中學</td><td class="n">${s.secondary3mi} 間</td></tr>
-<tr><td>2 英里內私立（independent）學校</td><td class="n">${s.independent2mi} 間</td></tr></table></div>
+<tr><td>2 英里內私立（independent）學校</td><td class="n">${s.independent2mi} 間</td></tr>
+${hasIndep(s) ? `<tr><td>5 英里內私立（independent）學校</td><td class="n">${s.independent5mi} 間</td></tr>` : ''}</table></div>
 ${zhCta(t, D)}
 <div class="links"><a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情 →</a><a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校 →</a></div>
 <h2>學校</h2><p>${esc(zhSchoolSentence(t, D))}</p>
@@ -476,13 +512,13 @@ function zhSchoolsPage(t, D) {
   const body = `<p>${esc(zhSchoolSentence(t, D))}</p>
 <h2>最近的公立小學（state primary）</h2>${zhSchoolTable(s.nearestPrimary)}
 <h2>最近的公立中學（state secondary）</h2>${zhSchoolTable(s.nearestSecondary)}
-<p>2 英里內有 ${s.independent2mi} 間私立（independent，需繳學費）學校，不計入上面的數字。</p>
+${zhIndepSection(t, D)}
 <h2>如何解讀</h2><p>學校類別來自英國教育部登記冊（GIAS），所以 academy 及 free school 都算公立學校。距離是由${U.zhAround}起計的直線距離；學校的入學名額分配以學區及入學準則為準，並非只看距離，請向學校及當地議會查詢。</p>
 ${ctx ? `<h2>${esc(t.name)} 與其他${U.zh}比較</h2><p>${esc(ctx)}</p>` : ''}${zhNearbySchoolsTable(t, D)}
 ${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情</a> · <a href="${zhPath(bestPath(D))}">${esc(D.countyName)} 最安全${U.zh}排名</a></p>${zhStamp(D)}`;
   return layout({ D,
-    lang: 'zh', title: t.name + ' 附近學校：公立小學及中學一覽｜Nest UK',
-    desc: t.name + '（' + zhCountyIn(D) + '）1 英里內有 ' + s.primary1mi + ' 間公立小學、3 英里內有 ' + s.secondary3mi + ' 間公立中學，附距離及英國教育部資料連結。',
+    lang: 'zh', title: t.name + (hasIndep(s) ? ' 附近學校：公立及私立學校一覽｜Nest UK' : ' 附近學校：公立小學及中學一覽｜Nest UK'),
+    desc: t.name + '（' + zhCountyIn(D) + '）1 英里內有 ' + s.primary1mi + ' 間公立小學、3 英里內有 ' + s.secondary3mi + ' 間公立中學' + (hasIndep(s) && s.independent5mi ? '，5 英里內有 ' + s.independent5mi + ' 間私立學校' : '') + '，附距離及英國教育部資料連結。',
     path: zhPath(tp) + '/schools', h1: t.name + ' 附近學校', body, noindex: !t.indexable,
     crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)], ['學校', zhPath(tp) + '/schools']],
   });

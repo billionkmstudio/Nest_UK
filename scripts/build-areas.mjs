@@ -59,19 +59,24 @@ export function summariseCrime(months, crimeByMonth) {
 export function summariseSchools(rows, lat, lng) {
   const MI = 1609.34, near = [];
   for (const r of rows) {
-    if (Math.abs(r[4] - lat) > 0.06 || Math.abs(r[5] - lng) > 0.1) continue;   // cheap pre-filter (~6 km)
-    near.push({ urn: r[0], name: r[1], cls: r[2], phase: r[3], faith: r[6] ? 1 : 0, d: Math.round(haversine(lat, lng, r[4], r[5])) });
+    if (Math.abs(r[4] - lat) > 0.08 || Math.abs(r[5] - lng) > 0.13) continue;   // cheap pre-filter (~9 km, wider than the 5 mile independent list)
+    // The state-school lists keep their original ~6 km search box so existing pages do not change; only the independent list uses the wider one.
+    near.push({ urn: r[0], name: r[1], cls: r[2], phase: r[3], faith: r[6] ? 1 : 0, d: Math.round(haversine(lat, lng, r[4], r[5])), box: Math.abs(r[4] - lat) <= 0.06 && Math.abs(r[5] - lng) <= 0.1 });
   }
-  const state = near.filter(s => s.cls === 'S');
+  const state = near.filter(s => s.cls === 'S' && s.box);
   const pri = state.filter(s => s.phase === 'p' || s.phase === 'a').sort((a, b) => a.d - b.d);
   const sec = state.filter(s => s.phase === 's' || s.phase === 'a').sort((a, b) => a.d - b.d);
   const slim = s => ({ urn: s.urn, name: s.name, d: s.d, faith: s.faith, all: s.phase === 'a' ? 1 : 0 });
+  // Independent (fee-paying) schools carry no phase in the DfE register, so they are listed by name and distance only.
+  const indep = near.filter(s => s.cls === 'I' && s.d <= 5 * MI).sort((a, b) => a.d - b.d);
   return {
     primary1mi: pri.filter(s => s.d <= MI).length,
     secondary3mi: sec.filter(s => s.d <= 3 * MI).length,
-    independent2mi: near.filter(s => s.cls === 'I' && s.d <= 2 * MI).length,
+    independent2mi: indep.filter(s => s.d <= 2 * MI).length,
+    independent5mi: indep.length,
     nearestPrimary: pri.slice(0, 5).map(slim),
     nearestSecondary: sec.slice(0, 5).map(slim),
+    nearestIndependent: indep.slice(0, 10).map(s => ({ urn: s.urn, name: s.name, d: s.d, faith: s.faith })),
   };
 }
 
