@@ -22,7 +22,7 @@ for (let k = 0; k < 24; k++) {
 const reply = { properties: { meta: { updated_at: '2026-10-24T09:30:00Z' }, timeseries: series } };
 
 const days = summariseForecast(reply);
-check('three days, in order, London dates', days.length === 4 && days[0].date === '2026-10-24' && days[1].date === '2026-10-25' && days[2].date === '2026-10-26', days.map(d => d.date));
+check('three days, in order, London dates', days.length === 6 && days[0].date === '2026-10-24' && days[1].date === '2026-10-25' && days[2].date === '2026-10-26', days.map(d => d.date));
 check('min and max temperature are whole degrees', Number.isInteger(days[0].min) && Number.isInteger(days[0].max) && days[0].max >= days[0].min, days[0]);
 check('rain adds hourly amounts once (14 hours left today x 0.1 mm, not plus the 6-hourly figures)', days[0].rain === 1.4, days[0].rain);
 check('wind is converted to mph (10 m/s = 22 mph)', days.some(d => d.windMph === 22), days.map(d => d.windMph));
@@ -37,10 +37,10 @@ globalThis.fetch = async (u, o) => { u = String(u); calls.push(u); lastUA = (o &
 const get = async p => { const pend = []; const r = await worker.fetch(new Request('https://x.test' + p), {}, { waitUntil: q => pend.push(q) }); await Promise.all(pend); return { r, j: await r.json() }; };
 
 let x = await get('/api/weather?lat=51.2361&lng=-0.5704');
-check('weather endpoint ok', x.r.status === 200 && x.j.days.length === 4 && x.j.src === 'MET Norway', x.j);
+check('weather endpoint ok', x.r.status === 200 && x.j.days.length === 6 && x.j.src === 'MET Norway', x.j);
 check('identifying User-Agent and short coordinates sent', /NestUK\/1\.0 https:\/\/nestuk\.co\.uk/.test(lastUA) && /lat=51\.24&lon=-0\.57$/.test(calls[0]), { lastUA, c: calls[0] });
 calls = []; x = await get('/api/weather?lat=51.2399&lng=-0.5701');
-check('nearby search served from cache', calls.length === 0 && x.j.days.length === 4, calls);
+check('nearby search served from cache', calls.length === 0 && x.j.days.length === 6, calls);
 metOk = false; store.clear();
 x = await get('/api/weather?lat=53.4&lng=-2.2'); check('upstream down, nothing cached -> 502', x.r.status === 502, x.j);
 x = await get('/api/weather?lat=40&lng=10'); check('outside UK rejected', x.r.status === 400, x.j);

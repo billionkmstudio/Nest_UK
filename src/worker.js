@@ -509,7 +509,7 @@ async function weather(request, env, ctx, url) {
   // snap to about 1 km so nearby searches share one cached forecast
   const sl = Math.round(lat * 100) / 100, sg = Math.round(lng * 100) / 100;
   const params = { lat: sl, lng: sg };
-  const res = await edgeCached(ctx, cacheKey('/wx', params), cacheKey('/wx-stale', params), 1800, 6 * 3600, async () => {
+  const res = await edgeCached(ctx, cacheKey('/wx6', params), cacheKey('/wx6-stale', params), 1800, 6 * 3600, async () => {
     const r = await fetch(MET_URL + '?lat=' + sl.toFixed(2) + '&lon=' + sg.toFixed(2), {
       headers: { 'User-Agent': 'NestUK/1.0 https://nestuk.co.uk', Accept: 'application/json' }, signal: AbortSignal.timeout(12000),
     });
