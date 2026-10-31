@@ -162,4 +162,28 @@ const sm2 = sitemapXml(D);
 check('sitemap: zh pages with hreflang alternates, thin town still out', sm2.includes('<loc>https://nestuk.co.uk/zh/uk/surrey/gamma-town/crime</loc>') && sm2.includes('xmlns:xhtml') && sm2.includes('hreflang="zh-HK" href="https://nestuk.co.uk/zh/best/safest-towns-in-surrey"') && !sm2.includes('/zh/uk/surrey/tiny'));
 check('English county page links to nothing broken: still no zh noindex leak', !(await get('/uk/surrey')).t.includes('noindex'));
 
+/* ---- internal links and per-place comparison text (crime and schools pages) ---- */
+resetMemo();
+x = await get('/uk/surrey/gamma-town/crime');
+check('crime page: compares with neighbours and links to their crime pages', x.t.includes('How Gamma Town compares') && x.t.includes('href="/uk/surrey/beta/crime"') && x.t.includes('href="/uk/surrey/gamma-town/schools"'), x.t.slice(-600));
+check('crime page: thin neighbour (tiny) is never linked', !x.t.includes('/uk/surrey/tiny'));
+x = await get('/uk/surrey/tiny/crime');
+check('thin town crime page: no comparison text (it is noindex)', x.t.includes('noindex') && !x.t.includes('compares'));
+x = await get('/uk/surrey/gamma-town/schools');
+check('schools page: median comparison and links to neighbours', x.t.includes('How Gamma Town compares') && x.t.includes('median') && x.t.includes('href="/uk/surrey/beta/schools"') && x.t.includes('href="/uk/surrey/gamma-town/crime"'), x.t.slice(-600));
+x = await get('/zh/uk/surrey/gamma-town/crime');
+check('zh crime page: comparison and zh neighbour links', x.t.includes('與其他市鎮比較') && x.t.includes('href="/zh/uk/surrey/beta/crime"') && x.t.includes('href="/zh/uk/surrey/gamma-town/schools"'));
+x = await get('/zh/uk/surrey/gamma-town/schools');
+check('zh schools page: comparison and zh neighbour links', x.t.includes('與其他市鎮比較') && x.t.includes('中位數') && x.t.includes('href="/zh/uk/surrey/beta/schools"') && x.t.includes('href="/zh/uk/surrey/gamma-town/crime"'));
+x = await get('/uk/surrey');
+check('county page links every indexable town to its crime and schools pages', x.t.includes('href="/uk/surrey/beta/crime"') && x.t.includes('href="/uk/surrey/beta/schools"') && !x.t.includes('/uk/surrey/tiny'));
+x = await get('/best/safest-towns-in-surrey');
+check('ranking page links to crime and schools pages', x.t.includes('href="/uk/surrey/beta/crime"') && x.t.includes('href="/uk/surrey/beta/schools"'));
+x = await get('/zh/uk/surrey');
+check('zh county page links to zh crime and schools pages', x.t.includes('href="/zh/uk/surrey/beta/crime"') && x.t.includes('href="/zh/uk/surrey/beta/schools"') && !x.t.includes('/zh/uk/surrey/tiny'));
+x = await get('/zh/best/safest-towns-in-surrey');
+check('zh ranking page links to zh crime and schools pages', x.t.includes('href="/zh/uk/surrey/beta/crime"') && x.t.includes('href="/zh/uk/surrey/beta/schools"'));
+check('large gap to neighbours is a multiple, not a huge percentage', route('/uk/surrey/big-town/crime', small).includes('about 7.5 times as many') && !/\d{3,}% more/.test(route('/uk/surrey/big-town/crime', small)));
+check('zh large gap is a multiple', route('/zh/uk/surrey/big-town/crime', small).includes('約為它們的 7.5 倍'));
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);

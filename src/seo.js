@@ -96,10 +96,31 @@ export function prepare(raw) {
     t.vsMedian = median ? Math.round((t.crime.total - median) / median * 100) : null;
   });
   towns.forEach(t => {
-    t.nearby = towns.filter(o => o !== t && o.indexable)
-      .map(o => ({ o, d: haversine(t.lat, t.lng, o.lat, o.lng) })).sort((x, y) => x.d - y.d).slice(0, 4).map(x => x.o);
+    const near = towns.filter(o => o !== t && o.indexable)
+      .map(o => ({ o, d: haversine(t.lat, t.lng, o.lat, o.lng) })).sort((x, y) => x.d - y.d).slice(0, 4);
+    t.nearby = near.map(x => x.o);
+    t.nearbyDist = near.map(x => x.d);
   });
-  return { raw, towns, ranked, median, count: ranked.length, bySlug: new Map(towns.map(t => [t.slug, t])), countyName: raw.countyName, county: raw.county, unit: raw.unit === 'areas' ? 'areas' : 'towns', latest: raw.latest, built: raw.built, radiusM: raw.radiusM };
+  // Context for the crime and schools pages: how a place compares with its neighbours and with the whole region.
+  // Every figure is worked out from the data file, so the extra wording is different on every page.
+  const catTot = {}; let allTot = 0;
+  ranked.forEach(t => { allTot += t.crime.total; Object.entries(t.crime.cats).forEach(([k, n]) => { catTot[k] = (catTot[k] || 0) + n; }); });
+  const countyShare = {}; Object.keys(catTot).forEach(k => { countyShare[k] = allTot ? catTot[k] / allTot * 100 : 0; });
+  const med = arr => { const a = arr.slice().sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : 0; };
+  const withSchools = ranked.filter(t => t.schools);
+  const medPrimary = med(withSchools.map(t => t.schools.primary1mi)), medSecondary = med(withSchools.map(t => t.schools.secondary3mi));
+  towns.forEach(t => {
+    t.mixDiff = []; t.nearAvg = null; t.vsNear = null;
+    if (!t.indexable) return;
+    t.mixDiff = Object.entries(t.crime.cats).filter(([, n]) => n >= 10)
+      .map(([c, n]) => { const pct = n / t.crime.total * 100, cty = countyShare[c] || 0; return { c, pct, cty, d: pct - cty }; })
+      .filter(x => Math.abs(x.d) >= 3).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 2);
+    if (t.nearby.length) {
+      t.nearAvg = t.nearby.reduce((s, o) => s + o.crime.total, 0) / t.nearby.length;
+      t.vsNear = t.nearAvg ? Math.round((t.crime.total - t.nearAvg) / t.nearAvg * 100) : null;
+    }
+  });
+  return { raw, towns, ranked, median, medPrimary, medSecondary, count: ranked.length, bySlug: new Map(towns.map(t => [t.slug, t])), countyName: raw.countyName, county: raw.county, unit: raw.unit === 'areas' ? 'areas' : 'towns', latest: raw.latest, built: raw.built, radiusM: raw.radiusM };
 }
 
 /* ----------------------------- wording ----------------------------- */
@@ -128,6 +149,42 @@ function schoolSentence(t, D) {
   if (p) bits.push('The nearest state primary is ' + p.name + ' (' + miles(p.d) + ').');
   if (q) bits.push('The nearest state secondary is ' + q.name + ' (' + miles(q.d) + ').');
   return bits.join(' ');
+}
+const joinNames = names => names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : (names[0] || '');
+const relWord = (a, b) => a > b ? 'more than' : a < b ? 'fewer than' : 'the same as';
+
+// "How X compares": neighbours and the whole region, worked out from the data. Empty for a thin (noindex) place.
+function crimeContext(t, D) {
+  if (!t.indexable) return '';
+  const U = unitOf(D), out = [];
+  if (t.nearby.length && t.vsNear !== null) {
+    const list = joinNames(t.nearby.map(o => o.name)), ratio = t.crime.total / t.nearAvg;
+    out.push(Math.abs(t.vsNear) < 5
+      ? 'Among its nearest ' + U.pl + ' (' + list + '), ' + t.name + ' is close to the average: ' + num(t.crime.total) + ' recorded crimes against an average of ' + num(t.nearAvg) + '.'
+      : 'Its nearest ' + U.pl + ' are ' + list + '. They average ' + num(t.nearAvg) + ' recorded crimes a year, so ' + t.name + ' recorded ' + (ratio >= 2 ? 'about ' + ratio.toFixed(1).replace(/\.0$/, '') + ' times as many' : ratio <= 0.5 ? 'less than half as many' : Math.abs(t.vsNear) + '% ' + (t.vsNear < 0 ? 'fewer' : 'more')) + '.');
+  }
+  t.mixDiff.forEach(x => {
+    out.push(pretty(x.c) + ' makes up ' + Math.round(x.pct) + '% of recorded crime in ' + t.name + ', ' + (x.d > 0 ? 'a bigger share' : 'a smaller share') + ' than the ' + Math.round(x.cty) + '% across the ' + D.count + ' ' + D.countyName + ' ' + U.pl + '.');
+  });
+  return out.join(' ');
+}
+function nearbyCrimeTable(t, D) {
+  if (!t.nearby.length) return '';
+  const rows = t.nearby.map((o, i) => `<tr><td><a href="${townPath(o)}/crime">${esc(o.name)}</a></td><td class="n">${miles(t.nearbyDist[i])}</td><td class="n">${num(o.crime.total)}</td><td class="n">${num(o.crime.perMonth)}</td></tr>`).join('');
+  return `<h2>${esc(t.name)} and its nearest ${unitOf(D).pl}</h2><table><tr><th>${unitOf(D).Sg}</th><th class="n">Distance</th><th class="n">Crimes (12 mo)</th><th class="n">Per month</th></tr>
+<tr><td><b>${esc(t.name)}</b> (this page)</td><td class="n">–</td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td></tr>${rows}</table>`;
+}
+function schoolsContext(t, D) {
+  if (!t.indexable || !t.schools) return '';
+  const U = unitOf(D), s = t.schools;
+  return 'Across the ' + D.count + ' ' + D.countyName + ' ' + U.pl + ' compared, the median ' + U.sg + ' has ' + D.medPrimary + ' state primary ' + (D.medPrimary === 1 ? 'school' : 'schools') + ' within 1 mile and ' + D.medSecondary + ' state ' + (D.medSecondary === 1 ? 'secondary' : 'secondaries') + ' within 3 miles. ' +
+    t.name + ' has ' + s.primary1mi + ' primaries (' + relWord(s.primary1mi, D.medPrimary) + ' the median) and ' + s.secondary3mi + ' secondaries (' + relWord(s.secondary3mi, D.medSecondary) + ' the median).';
+}
+function nearbySchoolsTable(t, D) {
+  if (!t.nearby.length || !t.schools) return '';
+  const rows = t.nearby.map((o, i) => o.schools ? `<tr><td><a href="${townPath(o)}/schools">${esc(o.name)}</a></td><td class="n">${miles(t.nearbyDist[i])}</td><td class="n">${o.schools.primary1mi}</td><td class="n">${o.schools.secondary3mi}</td></tr>` : '').join('');
+  return `<h2>Schools in nearby ${unitOf(D).pl}</h2><table><tr><th>${unitOf(D).Sg}</th><th class="n">Distance</th><th class="n">State primaries within 1 mi</th><th class="n">State secondaries within 3 mi</th></tr>
+<tr><td><b>${esc(t.name)}</b> (this page)</td><td class="n">–</td><td class="n">${t.schools.primary1mi}</td><td class="n">${t.schools.secondary3mi}</td></tr>${rows}</table>`;
 }
 
 /* ----------------------------- layout ----------------------------- */
@@ -217,13 +274,15 @@ ${nearby}${stamp(D)}`;
 function crimePage(t, D) {
   const c = t.crime, cats = Object.entries(c.cats).sort((a, b) => b[1] - a[1]), U = unitOf(D);
   const peak = c.months.slice().sort((a, b) => b.n - a.n)[0], low = c.months.slice().sort((a, b) => a.n - b.n)[0];
+  const ctx = crimeContext(t, D);
   const body = `<p>${esc(crimeSentence(t, D))}</p>
 <h2>Recorded crimes by month</h2>${barChart(t)}
 <p class="mut">Busiest month: ${esc(monthName(peak.m))} (${peak.n}). Quietest month: ${esc(monthName(low.m))} (${low.n}).</p>
 <h2>What kinds of crime</h2><table><tr><th>Category</th><th class="n">Crimes</th><th class="n">Share</th></tr>
 ${cats.map(([k, n]) => `<tr><td>${esc(pretty(k))}</td><td class="n">${num(n)}</td><td class="n">${Math.round(n / c.total * 100)}%</td></tr>`).join('')}</table>
 <h2>How to read this</h2><p>Police.uk records the approximate location of each crime, and the count here covers a square about ${D.radiusM * 2} m across centred on ${U.theSg}. A busy high street records more crime than a quiet residential road, so a street-by-street check matters more than ${U.theSg} figure.</p>
-${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a href="${bestPath(D)}">Safest ${U.pl} in ${esc(D.countyName)}</a></p>${stamp(D)}`;
+${ctx ? `<h2>How ${esc(t.name)} compares</h2><p>${esc(ctx)}</p>` : ''}${nearbyCrimeTable(t, D)}
+${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a href="${townPath(t)}/schools">Schools near ${esc(t.name)}</a> · <a href="${bestPath(D)}">Safest ${U.pl} in ${esc(D.countyName)}</a></p>${stamp(D)}`;
   return layout({ D,
     title: t.name + ' crime rate: ' + num(c.total) + ' recorded crimes in 12 months | Nest UK',
     desc: 'Crime in ' + t.name + ', ' + D.countyName + ': ' + num(c.total) + ' recorded crimes in the last 12 months, by month and category.' + (cats.length ? ' Top category: ' + pretty(cats[0][0]).toLowerCase() + '.' : ''),
@@ -237,13 +296,14 @@ function schoolTable(list) {
   return `<table><tr><th>School</th><th class="n">Distance</th></tr>${list.map(x => `<tr><td><a href="${gias(x.urn)}" rel="nofollow noopener">${esc(x.name)}</a>${x.faith ? ' <span class="mut">(faith school)</span>' : ''}${x.all ? ' <span class="mut">(all-through)</span>' : ''}</td><td class="n">${miles(x.d)} · ${walk(x.d)}</td></tr>`).join('')}</table>`;
 }
 function schoolsPage(t, D) {
-  const s = t.schools, U = unitOf(D);
+  const s = t.schools, U = unitOf(D), ctx = schoolsContext(t, D);
   const body = `<p>${esc(schoolSentence(t, D))}</p>
 <h2>Nearest state primary schools</h2>${schoolTable(s.nearestPrimary)}
 <h2>Nearest state secondary schools</h2>${schoolTable(s.nearestSecondary)}
 <p>There ${s.independent2mi === 1 ? 'is 1 independent (fee-paying) school' : 'are ' + s.independent2mi + ' independent (fee-paying) schools'} within 2 miles; these are not counted above.</p>
 <h2>How to read this</h2><p>School types come from the Department for Education’s register (GIAS), so academies and free schools count as state schools. Distances are in a straight line from ${U.centre}; a school’s admissions area, catchment and Ofsted rating matter more than distance, so check each school’s own page before choosing a home.</p>
-${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a></p>${stamp(D)}`;
+${ctx ? `<h2>How ${esc(t.name)} compares</h2><p>${esc(ctx)}</p>` : ''}${nearbySchoolsTable(t, D)}
+${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a href="${townPath(t)}/crime">Crime in ${esc(t.name)}</a> · <a href="${bestPath(D)}">Safest ${U.pl} in ${esc(D.countyName)}</a></p>${stamp(D)}`;
   return layout({ D,
     title: 'Schools near ' + t.name + ', ' + D.countyName + ': state primary and secondary | Nest UK',
     desc: s.primary1mi + ' state primary schools within 1 mile and ' + s.secondary3mi + ' state secondary schools within 3 miles of ' + t.name + ', with distances and DfE links.',
@@ -253,13 +313,13 @@ ${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a></p>${sta
 }
 
 function rankingTable(D) {
-  return `<table><tr><th class="n">#</th><th>${unitOf(D).Sg}</th><th class="n">Crimes (12 mo)</th><th class="n">Per month</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td></tr>`).join('')}</table>`;
+  return `<table><tr><th class="n">#</th><th>${unitOf(D).Sg}</th><th class="n">Crimes (12 mo)</th><th class="n">Per month</th><th>Details</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td><td><a href="${townPath(t)}/crime">Crime</a> · <a href="${townPath(t)}/schools">Schools</a></td></tr>`).join('')}</table>`;
 }
 function countyPage(D) {
   const U = unitOf(D);
   const body = `<p>We compare ${D.count} ${esc(D.countyName)} ${U.pl} by recorded crime within ${D.radiusM} m of ${U.centre} over the 12 months to ${esc(monthName(D.latest))}, and show the school picture for each. The median ${U.sg} recorded ${num(D.median)} crimes.</p>
 <p><a href="${bestPath(D)}">See the full ranking: safest ${U.pl} in ${esc(D.countyName)} →</a></p>
-<h2>All ${esc(D.countyName)} ${U.pl}</h2><ul>${D.ranked.map(t => `<li><a href="${townPath(t)}">${esc(t.name)}</a></li>`).join('')}</ul>${stamp(D)}`;
+<h2>All ${esc(D.countyName)} ${U.pl}</h2><table><tr><th>${U.Sg}</th><th>Details</th></tr>${D.ranked.map(t => `<tr><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td><a href="${townPath(t)}/crime">Crime</a> · <a href="${townPath(t)}/schools">Schools</a></td></tr>`).join('')}</table>${stamp(D)}`;
   return layout({ D,
     title: D.countyName + ' ' + U.pl + ' compared: crime and schools | Nest UK',
     desc: 'Compare ' + D.count + ' ' + D.countyName + ' ' + U.pl + ' by recorded crime and nearby state schools, using Police.uk and DfE data. Updated monthly.',
@@ -321,6 +381,41 @@ function zhSchoolSentence(t, D) {
   if (q) bits.push('最近的公立中學是 ' + q.name + '（' + zhMiles(q.d) + '）。');
   return bits.join('');
 }
+const zhRel = (a, b) => a > b ? '多於' : a < b ? '少於' : '等於';
+function zhCrimeContext(t, D) {
+  if (!t.indexable) return '';
+  const U = unitOf(D), out = [];
+  if (t.nearby.length && t.vsNear !== null) {
+    const list = t.nearby.map(o => o.name).join('、'), ratio = t.crime.total / t.nearAvg;
+    out.push(Math.abs(t.vsNear) < 5
+      ? '在最接近的幾個' + U.zh + '（' + list + '）之中，' + t.name + ' 接近平均水平：12 個月錄得 ' + num(t.crime.total) + ' 宗，平均為 ' + num(t.nearAvg) + ' 宗。'
+      : '最接近的' + U.zh + '有 ' + list + '，它們每年平均錄得 ' + num(t.nearAvg) + ' 宗警方記錄罪案，所以 ' + t.name + ' ' + (ratio >= 2 ? '約為它們的 ' + ratio.toFixed(1).replace(/\.0$/, '') + ' 倍' : ratio <= 0.5 ? '不到它們的一半' : '比它們' + (t.vsNear < 0 ? '少 ' : '多 ') + Math.abs(t.vsNear) + '%') + '。');
+  }
+  t.mixDiff.forEach(x => {
+    out.push(zhCat(x.c) + '佔 ' + t.name + ' 全部記錄罪案的 ' + Math.round(x.pct) + '%，' + (x.d > 0 ? '高於' : '低於') + D.countyName + ' ' + D.count + ' 個' + U.zh + '整體的 ' + Math.round(x.cty) + '%。');
+  });
+  return out.join('');
+}
+function zhNearbyCrimeTable(t, D) {
+  if (!t.nearby.length) return '';
+  const U = unitOf(D);
+  const rows = t.nearby.map((o, i) => `<tr><td><a href="${zhPath(townPath(o))}/crime">${esc(o.name)}</a></td><td class="n">${zhMiles(t.nearbyDist[i])}</td><td class="n">${num(o.crime.total)}</td><td class="n">${num(o.crime.perMonth)}</td></tr>`).join('');
+  return `<h2>${esc(t.name)} 與附近${U.zh}比較</h2><table><tr><th>${U.zh}</th><th class="n">距離</th><th class="n">12 個月罪案宗數</th><th class="n">每月</th></tr>
+<tr><td><b>${esc(t.name)}</b>（本頁）</td><td class="n">–</td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td></tr>${rows}</table>`;
+}
+function zhSchoolsContext(t, D) {
+  if (!t.indexable || !t.schools) return '';
+  const U = unitOf(D), s = t.schools;
+  return D.countyName + ' 比較的 ' + D.count + ' 個' + U.zh + '中，中位數是 1 英里內有 ' + D.medPrimary + ' 間公立小學、3 英里內有 ' + D.medSecondary + ' 間公立中學。' +
+    t.name + ' 有 ' + s.primary1mi + ' 間小學（' + zhRel(s.primary1mi, D.medPrimary) + '中位數）及 ' + s.secondary3mi + ' 間中學（' + zhRel(s.secondary3mi, D.medSecondary) + '中位數）。';
+}
+function zhNearbySchoolsTable(t, D) {
+  if (!t.nearby.length || !t.schools) return '';
+  const U = unitOf(D);
+  const rows = t.nearby.map((o, i) => o.schools ? `<tr><td><a href="${zhPath(townPath(o))}/schools">${esc(o.name)}</a></td><td class="n">${zhMiles(t.nearbyDist[i])}</td><td class="n">${o.schools.primary1mi}</td><td class="n">${o.schools.secondary3mi}</td></tr>` : '').join('');
+  return `<h2>附近${U.zh}的學校</h2><table><tr><th>${U.zh}</th><th class="n">距離</th><th class="n">1 英里內公立小學</th><th class="n">3 英里內公立中學</th></tr>
+<tr><td><b>${esc(t.name)}</b>（本頁）</td><td class="n">–</td><td class="n">${t.schools.primary1mi}</td><td class="n">${t.schools.secondary3mi}</td></tr>${rows}</table>`;
+}
 function zhBarChart(t) { return barChart(t).replace('aria-label="Recorded crimes per month in ' + esc(t.name) + '"', 'aria-label="' + esc(t.name) + ' 每月警方記錄罪案宗數"'); }
 
 function zhTownPage(t, D) {
@@ -356,13 +451,15 @@ ${nearby}${zhStamp(D)}`;
 function zhCrimePage(t, D) {
   const c = t.crime, cn = zhCounty(D), tp = townPath(t), U = unitOf(D), cats = Object.entries(c.cats).sort((a, b) => b[1] - a[1]);
   const peak = c.months.slice().sort((a, b) => b.n - a.n)[0], low = c.months.slice().sort((a, b) => a.n - b.n)[0];
+  const ctx = zhCrimeContext(t, D);
   const body = `<p>${esc(zhCrimeSentence(t, D))}</p>
 <h2>每月警方記錄罪案</h2>${zhBarChart(t)}
 <p class="mut">最多的一個月：${esc(zhMonth(peak.m))}（${peak.n} 宗）。最少的一個月：${esc(zhMonth(low.m))}（${low.n} 宗）。</p>
 <h2>罪案類型</h2><table><tr><th>類別</th><th class="n">宗數</th><th class="n">佔比</th></tr>
 ${cats.map(([k, n]) => `<tr><td>${esc(zhCat(k))}</td><td class="n">${num(n)}</td><td class="n">${Math.round(n / c.total * 100)}%</td></tr>`).join('')}</table>
 <h2>如何解讀</h2><p>Police.uk 只記錄每宗罪案的大約位置，這裏統計的是以${U.zhAround}為中心、邊長約 ${D.radiusM * 2} 米的範圍。繁忙的商業街記錄的罪案會比寧靜的住宅街多，所以請把數字當作比較不同地區的參考，而不是某條街的保證。</p>
-${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath(bestPath(D))}">${esc(D.countyName)} 最安全${U.zh}排名</a></p>${zhStamp(D)}`;
+${ctx ? `<h2>${esc(t.name)} 與其他${U.zh}比較</h2><p>${esc(ctx)}</p>` : ''}${zhNearbyCrimeTable(t, D)}
+${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校</a> · <a href="${zhPath(bestPath(D))}">${esc(D.countyName)} 最安全${U.zh}排名</a></p>${zhStamp(D)}`;
   return layout({ D,
     lang: 'zh', title: t.name + ' 治安：12 個月錄得 ' + num(c.total) + ' 宗罪案｜Nest UK',
     desc: t.name + '（' + zhCountyIn(D) + '）過去 12 個月錄得 ' + num(c.total) + ' 宗警方記錄罪案，附每月走勢及罪案類型。' + (cats.length ? '最多的類別：' + zhCat(cats[0][0]) + '。' : ''),
@@ -375,13 +472,14 @@ function zhSchoolTable(list) {
   return `<table><tr><th>學校</th><th class="n">距離</th></tr>${list.map(x => `<tr><td><a href="${gias(x.urn)}" rel="nofollow noopener">${esc(x.name)}</a>${x.faith ? ' <span class="mut">（宗教學校）</span>' : ''}${x.all ? ' <span class="mut">（一條龍學校）</span>' : ''}</td><td class="n">${zhMiles(x.d)} · ${zhWalk(x.d)}</td></tr>`).join('')}</table>`;
 }
 function zhSchoolsPage(t, D) {
-  const s = t.schools, cn = zhCounty(D), tp = townPath(t), U = unitOf(D);
+  const s = t.schools, cn = zhCounty(D), tp = townPath(t), U = unitOf(D), ctx = zhSchoolsContext(t, D);
   const body = `<p>${esc(zhSchoolSentence(t, D))}</p>
 <h2>最近的公立小學（state primary）</h2>${zhSchoolTable(s.nearestPrimary)}
 <h2>最近的公立中學（state secondary）</h2>${zhSchoolTable(s.nearestSecondary)}
 <p>2 英里內有 ${s.independent2mi} 間私立（independent，需繳學費）學校，不計入上面的數字。</p>
 <h2>如何解讀</h2><p>學校類別來自英國教育部登記冊（GIAS），所以 academy 及 free school 都算公立學校。距離是由${U.zhAround}起計的直線距離；學校的入學名額分配以學區及入學準則為準，並非只看距離，請向學校及當地議會查詢。</p>
-${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a></p>${zhStamp(D)}`;
+${ctx ? `<h2>${esc(t.name)} 與其他${U.zh}比較</h2><p>${esc(ctx)}</p>` : ''}${zhNearbySchoolsTable(t, D)}
+${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情</a> · <a href="${zhPath(bestPath(D))}">${esc(D.countyName)} 最安全${U.zh}排名</a></p>${zhStamp(D)}`;
   return layout({ D,
     lang: 'zh', title: t.name + ' 附近學校：公立小學及中學一覽｜Nest UK',
     desc: t.name + '（' + zhCountyIn(D) + '）1 英里內有 ' + s.primary1mi + ' 間公立小學、3 英里內有 ' + s.secondary3mi + ' 間公立中學，附距離及英國教育部資料連結。',
@@ -390,13 +488,13 @@ ${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a></p>${zhSt
   });
 }
 function zhRankingTable(D) {
-  return `<table><tr><th class="n">#</th><th>${unitOf(D).zh}</th><th class="n">12 個月罪案宗數</th><th class="n">每月</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td></tr>`).join('')}</table>`;
+  return `<table><tr><th class="n">#</th><th>${unitOf(D).zh}</th><th class="n">12 個月罪案宗數</th><th class="n">每月</th><th>詳情</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td><td><a href="${zhPath(townPath(t))}/crime">罪案</a> · <a href="${zhPath(townPath(t))}/schools">學校</a></td></tr>`).join('')}</table>`;
 }
 function zhCountyPage(D) {
   const cn = zhCounty(D), U = unitOf(D);
   const body = `<p>我們比較 ${D.count} 個 ${esc(D.countyName)} ${U.zh}，以截至 ${esc(zhMonth(D.latest))} 的 12 個月內、${U.zhC} ${D.radiusM} 米範圍的警方記錄罪案宗數作比較，並列出每個${U.zh}附近的學校情況。${U.zh}中位數為 ${num(D.median)} 宗。適合計劃移居英國（包括 BNO 簽證持有人）、正在比較 ${esc(D.countyName)} 不同${U.zh}的家庭參考。</p>
 <p><a href="${zhPath(bestPath(D))}">查看完整排名：${esc(D.countyName)} 最安全${U.zh} →</a></p>
-<h2>${esc(D.countyName)} 所有${U.zh}</h2><ul>${D.ranked.map(t => `<li><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></li>`).join('')}</ul>${zhStamp(D)}`;
+<h2>${esc(D.countyName)} 所有${U.zh}</h2><table><tr><th>${U.zh}</th><th>詳情</th></tr>${D.ranked.map(t => `<tr><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td><a href="${zhPath(townPath(t))}/crime">罪案</a> · <a href="${zhPath(townPath(t))}/schools">學校</a></td></tr>`).join('')}</table>${zhStamp(D)}`;
   return layout({ D,
     lang: 'zh', title: cn + U.zh + '比較：治安及學校｜Nest UK',
     desc: '比較 ' + D.count + ' 個 ' + D.countyName + ' ' + U.zh + '的警方記錄罪案及附近公立學校，資料來自 Police.uk 及英國教育部，每月更新。',
