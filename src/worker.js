@@ -443,24 +443,41 @@ async function crime(request, env, ctx, url) {
   return res || json({ error: 'upstream' }, 502);
 }
 
-const OVERPASS_MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-async function runOverpass(query) {
-  for (let i = 0; i < OVERPASS_MIRRORS.length; i++) {
-    try {
-      const r = await fetch(OVERPASS_MIRRORS[i], {
+// Order matters: a mirror that hangs used to eat the whole 28 s budget before the next one was tried (kumi.systems
+// hung for 40 s+ in testing while the .fr mirror answered in about 1 s). Now the next mirror starts as soon as the
+// previous one fails, or after HEDGE_MS of silence, and the first good answer wins.
+const OVERPASS_MIRRORS = ['https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const HEDGE_MS = 4000, MIRROR_MS = 20000;
+function runOverpass(query) {
+  return new Promise(resolve => {
+    const ctrls = [];
+    let next = 0, failed = 0, done = false, hedge = null;
+    const finish = v => { if (done) return; done = true; clearTimeout(hedge); ctrls.forEach(c => { try { c.abort(); } catch (e) { /* already settled */ } }); resolve(v); };
+    const start = () => {
+      if (done || next >= OVERPASS_MIRRORS.length) return;
+      const url = OVERPASS_MIRRORS[next++], c = new AbortController(), to = setTimeout(() => c.abort(), MIRROR_MS);
+      ctrls.push(c);
+      clearTimeout(hedge);
+      if (next < OVERPASS_MIRRORS.length) hedge = setTimeout(start, HEDGE_MS);
+      fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA },
         body: 'data=' + encodeURIComponent(query),
-        signal: AbortSignal.timeout(28000),
+        signal: c.signal,
+      }).then(async r => {
+        if (!r.ok) throw new Error('http ' + r.status);
+        const j = await r.json();
+        const els = j.elements || [];
+        if (j.remark && /timed out|out of memory/i.test(j.remark) && !els.length) throw new Error('overpass timed out');
+        return els;
+      }).then(els => { clearTimeout(to); finish(els); }, () => {
+        clearTimeout(to);
+        if (done) return;
+        if (++failed >= OVERPASS_MIRRORS.length) finish(null); else start();
       });
-      if (!r.ok) continue;
-      const j = await r.json();
-      const els = j.elements || [];
-      if (j.remark && /timed out|out of memory/i.test(j.remark) && !els.length) continue;
-      return els;
-    } catch (e) { /* try the next mirror */ }
-  }
-  return null;
+    };
+    start();
+  });
 }
 
 async function overpass(request, env, ctx, url) {

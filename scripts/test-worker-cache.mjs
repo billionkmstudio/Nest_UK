@@ -22,7 +22,7 @@ globalThis.fetch = async (u, o) => {
   }
   if (u.includes('flood-monitoring')) return floodMode === 'down' ? R(500, {}) : R(200, { items: [{ severityLevel: 3, severity: 'Flood alert', description: 'River Wey', extra: 'x' }] });
   if (u.includes('interpreter')) {
-    if (overpassMode === 'down' || (overpassMode === 'first-down' && u.includes('overpass-api.de'))) return R(429, {});
+    if (overpassMode === 'down' || (overpassMode === 'first-down' && u.includes('overpass.openstreetmap.fr'))) return R(429, {});
     return R(200, { elements: [{ type: 'node', id: 1 }] });
   }
   return R(404, {});

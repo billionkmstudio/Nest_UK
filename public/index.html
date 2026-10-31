@@ -1354,7 +1354,7 @@ async function loadFlood(item){
 }
 
 /* places + roads (Overpass, one request at a time) */
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const OVERPASS = ['https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 let ovActive = 0, ovRot = 0;
 const ovQ = [];
 function ovRun(fn){   // two requests at a time (public Overpass allows 2 slots per IP)
@@ -1401,12 +1401,12 @@ async function overpassKind(kind, lat, lng){
       if (r.ok){ const j = await r.json(); if (Array.isArray(j.elements)){ ovCachePut(ck, j.elements); return j.elements; } }
     }catch(e){}
   }
-  return overpass(NestQueries[kind](lat, lng));
+  return ovRun(() => overpass(NestQueries[kind](lat, lng)));   /* only the direct-to-Overpass fallback needs the 2-slot queue */
 }
 async function loadPlaces(item){
   const g = item.geo;
   const giasP = loadGias();   // DfE school types; never blocks or fails the search
-  const rs = await Promise.allSettled(['edu', 'extra', 'life'].map(k => ovRun(() => overpassKind(k, g.lat, g.lng))));
+  const rs = await Promise.allSettled(['edu', 'extra', 'life'].map(k => overpassKind(k, g.lat, g.lng)));
   await giasP;
   if (rs.every(x => x.status !== 'fulfilled')) throw new Error(errMsg(rs[0].reason));
   const data = summarisePlaces([].concat(...rs.map(x => x.status === 'fulfilled' ? x.value : [])), g);
@@ -1453,7 +1453,7 @@ function summariseCars(elements, geo){
   return {fuel:fuelM, ev:evM, evRapid:evM.filter(e => e.kw >= 50).length};
 }
 async function loadCars(item){
-  const els = await ovRun(() => overpassKind('cars', item.geo.lat, item.geo.lng));
+  const els = await overpassKind('cars', item.geo.lat, item.geo.lng);
   item.cars = {data:summariseCars(els, item.geo)};
 }
 async function loadWeather(item){
@@ -1466,11 +1466,11 @@ async function loadWeather(item){
   item.weather = j;
 }
 async function loadBus(item){
-  const els = await ovRun(() => overpassKind('bus', item.geo.lat, item.geo.lng));
+  const els = await overpassKind('bus', item.geo.lat, item.geo.lng);
   item.bus = {data:summariseBus(els, item.geo)};
 }
 async function loadRoads(item){
-  const els = await ovRun(() => overpassKind('roads', item.geo.lat, item.geo.lng));
+  const els = await overpassKind('roads', item.geo.lat, item.geo.lng);
   item.roads = {data:summariseRoads(els, item.geo)};
 }
 async function runModule(it, mod){
