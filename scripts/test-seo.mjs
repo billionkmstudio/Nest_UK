@@ -186,4 +186,22 @@ check('zh ranking page links to zh crime and schools pages', x.t.includes('href=
 check('large gap to neighbours is a multiple, not a huge percentage', route('/uk/surrey/big-town/crime', small).includes('about 7.5 times as many') && !/\d{3,}% more/.test(route('/uk/surrey/big-town/crime', small)));
 check('zh large gap is a multiple', route('/zh/uk/surrey/big-town/crime', small).includes('約為它們的 7.5 倍'));
 
+/* ---- independent (private) schools ---- */
+const sc5 = summariseSchools(rows.concat([[9, 'Far Indep', 'I', 'u', 51.2362 + 0.07, -0.5704, 1], [11, 'Too Far Indep', 'I', 'u', 51.2362 + 0.2, -0.5704, 0]]), 51.2362, -0.5704);
+check('schools build: independent list within 5 miles, nearest first, with faith flag', sc5.independent5mi === 2 && sc5.nearestIndependent.map(x => x.name).join() === 'Fee Paying,Far Indep' && sc5.nearestIndependent[1].faith === 1 && sc5.independent2mi === 1, sc5);
+check('schools build: state lists unchanged by the independent list', sc5.primary1mi === 2 && sc5.secondary3mi === 2 && sc5.nearestPrimary[0].name === 'All Through', sc5);
+resetMemo();
+x = await get('/uk/surrey/alpha/schools');
+check('schools page: independent (private) section with DfE link and fees caveat', x.t.includes('Independent (private) schools near Alpha') && x.t.includes('Fee Paying') && x.t.includes('Establishment/Details/3') && x.t.includes('fees') && x.t.includes('not counted in the state school figures'), x.t.slice(0, 200));
+check('schools page: title and description mention private schools', /<title>Schools near Alpha, Surrey: state and private \(independent\)/.test(x.t) && x.t.includes('independent (private) school'));
+x = await get('/uk/surrey/alpha');
+check('town page: private schools FAQ and 5 mile row', x.t.includes('Are there private schools near Alpha?') && x.t.includes('Independent schools within 5 miles') && x.t.includes('Fee Paying'));
+x = await get('/zh/uk/surrey/alpha/schools');
+check('zh schools page: private section, DfE link, zh title', x.t.includes('附近的私立學校（independent）') && x.t.includes('Fee Paying') && x.t.includes('Establishment/Details/3') && x.t.includes('公立及私立學校一覽') && x.t.includes('學費'));
+x = await get('/zh/uk/surrey/alpha');
+check('zh town page: private schools FAQ and 5 mile row', x.t.includes('附近有私立學校嗎？') && x.t.includes('5 英里內私立（independent）學校'));
+check('old data without the list keeps the old sentence, no broken section', route('/uk/surrey/big-town/schools', small).includes('within 2 miles; these are not counted above') && !route('/uk/surrey/big-town/schools', small).includes('Independent (private)') && route('/zh/uk/surrey/big-town/schools', small).includes('不計入上面的數字') && !route('/uk/surrey/big-town', small).includes('private schools near'));
+const none = prepare({ towns: [{ slug: 'big-town', name: 'Big Town', county: 'surrey', lat: 51.1, lng: -0.5, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: 60 })), total: 720, perMonth: 60, cats: { burglary: 720 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, independent5mi: 0, nearestPrimary: [], nearestSecondary: [], nearestIndependent: [] } }], county: 'surrey', countyName: 'Surrey', latest: '2026-08', built: '2026-10-23', radiusM: 600 });
+check('no private schools within 5 miles: says so, no empty table', route('/uk/surrey/big-town/schools', none).includes('lists no independent (fee-paying) schools within 5 miles') && !route('/uk/surrey/big-town/schools', none).includes('<th>School</th><th class="n">Distance</th></tr></table>'));
+
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);
