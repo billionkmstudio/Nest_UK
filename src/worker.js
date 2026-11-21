@@ -13,6 +13,7 @@
 
 import Q from '../public/queries.js';
 import { seoHandler } from './seo.js';
+import { withSecurityHeaders } from './security-headers.js';
 import { summariseForecast } from './weather.js';
 import { eventPoint } from './events.js';
 
@@ -553,7 +554,7 @@ export default {
     if (url.pathname === '/api/crime') return crime(request, env, ctx, url);
     if (url.pathname === '/api/overpass') return overpass(request, env, ctx, url);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not found' }, 404);
-    if (url.pathname === '/sitemap.xml' || url.pathname === '/uk' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/') || url.pathname.startsWith('/zh/')) return seoHandler(request, env, ctx, url);
+    if (url.pathname === '/sitemap.xml' || url.pathname === '/uk' || url.pathname.startsWith('/uk/') || url.pathname.startsWith('/best/') || url.pathname.startsWith('/zh/')) return withSecurityHeaders(await seoHandler(request, env, ctx, url));
     return env.ASSETS.fetch(request);
   },
 };

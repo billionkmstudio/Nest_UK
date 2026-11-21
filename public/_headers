@@ -1,0 +1,10 @@
+# Security headers for static assets (homepage, privacy page, JS, data).
+# Worker-generated pages (/uk, /best, /zh, sitemap) get the same headers in src/security-headers.js.
+# CSP is Report-Only for now: browsers log violations in the console but block nothing.
+# Once the map, 3D view, search and all data layers work with no CSP errors, rename the header
+# to Content-Security-Policy (and update src/security-headers.js to match).
+/*
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), payment=(), usb=()
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.postcodes.io https://nominatim.openstreetmap.org https://data.police.uk https://overpass.openstreetmap.fr https://overpass-api.de https://overpass.kumi.systems https://gisrest.defra.gov.uk https://environment.data.gov.uk https://tiles.openfreemap.org https://unpkg.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests
