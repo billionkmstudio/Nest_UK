@@ -54,8 +54,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V" crossorigin="anonymous">
 <style>
 /* Layout: one report column. Search card, topic tabs, one card per address per topic, one shared map. */
 :root{
@@ -564,7 +564,7 @@ if (window.innerWidth >= 900) document.body.classList.add('two', 'landing');
   </footer>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="/gias.js"></script>
 <script src="/queries.js"></script>
 <script src="/place.js"></script>
@@ -2470,8 +2470,8 @@ function updateUK(g){
 /* 3D */
 let map3 = null, ready3 = false, pins3 = [], lastFit3 = '';
 const EMPTY_FC = {type:'FeatureCollection', features:[]};
-function loadScript(src){
-  return new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = () => rej(new Error('script')); document.head.appendChild(el); });
+function loadScript(src, integrity){
+  return new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; if (integrity){ el.integrity = integrity; el.crossOrigin = 'anonymous'; } el.onload = res; el.onerror = () => rej(new Error('script')); document.head.appendChild(el); });
 }
 function webglOK(){
   try{ const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }catch(e){ return false; }
@@ -2480,7 +2480,7 @@ async function ensure3d(){
   if (map3) return true;
   if (!webglOK()){ mapNote(t('err3d'), 8000); return false; }
   mapNote(t('load3d'));
-  try{ if (!window.maplibregl) await loadScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js'); }
+  try{ if (!window.maplibregl) await loadScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', 'sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj'); }
   catch(e){ mapNote(t('err3d'), 8000); return false; }
   const sel = getDigests().find(d => d.item.i === state.mapIdx) || getDigests()[0];
   if (!sel) return false;
