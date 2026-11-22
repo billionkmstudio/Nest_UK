@@ -113,31 +113,38 @@ export function summariseParking(elements, lat, lng) {
     pr: pr.filter(p => p.name).slice(0, 3).map(p => strip({ name: p.name, d: p.d, cap: p.cap })),
   };
 }
-// One Overpass call per region (a box around all its places), then each place is cut out locally: far kinder to the
-// public Overpass servers than one call per place. Same filters as the live site's query (public/queries.js "park").
-const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-export function regionParkingQuery(points) {
-  const lats = points.map(p => p[0]), lngs = points.map(p => p[1]);
-  const box = pad => [Math.min(...lats) - pad, Math.min(...lngs) - pad * 1.6, Math.max(...lats) + pad, Math.max(...lngs) + pad * 1.6].map(v => v.toFixed(4)).join(',');
-  return '[out:json][timeout:180];\n(\n' +
-    '  nwr["amenity"="parking"]["access"!~"^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$"]["parking"!~"^(street_side|lane|on_street|layby|half_on_kerb|on_kerb|shoulder)$"](' + box(0.02) + ');\n' +
-    '  nwr["amenity"="parking"]["park_ride"~"^(yes|bus|train|tram|subway|metro)$"](' + box(0.1) + ');\n' +
+// One Overpass call per place (a whole-region call was too big for the public servers), two at a time, which is what
+// the public Overpass servers allow per IP. Same filters as the live site's query (public/queries.js "park").
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+export function parkingQuery(lat, lng) {
+  const p = lat + ',' + lng;
+  return '[out:json][timeout:90];\n(\n' +
+    '  nwr["amenity"="parking"]["access"!~"^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$"]["parking"!~"^(street_side|lane|on_street|layby|half_on_kerb|on_kerb|shoulder)$"](around:1650,' + p + ');\n' +
+    '  nwr["amenity"="parking"]["park_ride"~"^(yes|bus|train|tram|subway|metro)$"](around:10000,' + p + ');\n' +
     ');\nout center tags qt;';
 }
-async function fetchRegionParking(fetchFn, points, log) {
-  const body = 'data=' + encodeURIComponent(regionParkingQuery(points));
+async function fetchParking(fetchFn, name, lat, lng, log) {
+  const body = 'data=' + encodeURIComponent(parkingQuery(lat, lng));
   for (let i = 0; i < 4; i++) {
+    const host = OVERPASS[i % OVERPASS.length];
     try {
-      const r = await fetchFn(OVERPASS[i % OVERPASS.length], { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA }, signal: AbortSignal.timeout(200000) });
+      const r = await fetchFn(host, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA }, signal: AbortSignal.timeout(120000) });
       if (r.ok) {
         const j = await r.json();
-        if (Array.isArray(j.elements) && !(j.remark && /timed out|out of memory/i.test(j.remark))) { log('car parks: ' + j.elements.length + ' mapped in the region'); return j.elements; }
-      }
-      log('car parks: Overpass HTTP ' + r.status);
-    } catch (e) { log('car parks: Overpass ' + (e && e.name)); }
-    await new Promise(res => setTimeout(res, 10000 * (i + 1) * (globalThis.__FAST ? 0 : 1)));
+        if (Array.isArray(j.elements) && !(j.remark && /timed out|out of memory/i.test(j.remark))) return summariseParking(j.elements, lat, lng);
+        log(name + ': Overpass gave no usable answer (' + host.split('/')[2] + ')');
+      } else log(name + ': Overpass HTTP ' + r.status + ' (' + host.split('/')[2] + ')');
+    } catch (e) { log(name + ': Overpass ' + (e && (e.cause && e.cause.code || e.name)) + ' (' + host.split('/')[2] + ')'); }
+    await new Promise(res => setTimeout(res, 5000 * (i + 1) * (globalThis.__FAST ? 0 : 1)));
   }
   return null;
+}
+async function fetchAllParking(fetchFn, towns, log) {
+  const out = new Array(towns.length).fill(null);
+  let next = 0;
+  const worker = async () => { while (next < towns.length) { const i = next++; const [name, lat, lng] = towns[i]; out[i] = await fetchParking(fetchFn, name, lat, lng, log); } };
+  await Promise.all([worker(), worker()]);
+  return out;
 }
 
 async function getJSON(fetchFn, url, tries = 4) {
@@ -160,7 +167,8 @@ export async function buildAreas({ fetchFn = fetch, schoolRows, config, previous
   const months = monthList(latest, 12);
   const prev = new Map(((previous && previous.towns) || []).map(t => [t.slug, t]));
   const towns = [];
-  const parkEls = await fetchRegionParking(fetchFn, config.towns.map(t => [t[1], t[2]]), log);
+  const parkAll = fetchAllParking(fetchFn, config.towns, log);   // runs alongside the police.uk calls below
+  const crimes = [];
   for (const [name, lat, lng] of config.towns) {
     const slug = slugify(name);
     const crimeByMonth = {};
@@ -173,13 +181,19 @@ export async function buildAreas({ fetchFn = fetch, schoolRows, config, previous
     }
     let crime = summariseCrime(months, crimeByMonth);
     if (!crime && prev.get(slug)) { crime = prev.get(slug).crime; log('kept previous crime for ' + name); }
-    let parking = parkEls ? summariseParking(parkEls, lat, lng) : null;
+    log(name + ': ' + (crime ? crime.total + ' crimes' : 'no crime data'));
+    crimes.push(crime);
+  }
+  const parks = await parkAll;
+  config.towns.forEach(([name, lat, lng], i) => {
+    const slug = slugify(name);
+    let parking = parks[i];
     if (!parking && prev.get(slug) && prev.get(slug).parking) { parking = prev.get(slug).parking; log('kept previous car parks for ' + name); }
-    log(name + ': ' + (crime ? crime.total + ' crimes' : 'no crime data') + ', ' + (parking ? parking.count1mi + ' car parks' : 'no car park data'));
-    const town = { slug, name, county: config.county, lat, lng, crime, schools: summariseSchools(schoolRows, lat, lng) };
+    log(name + ': ' + (parking ? parking.count1mi + ' car parks' : 'no car park data'));
+    const town = { slug, name, county: config.county, lat, lng, crime: crimes[i], schools: summariseSchools(schoolRows, lat, lng) };
     if (parking) town.parking = parking;
     towns.push(town);
-  }
+  });
   return { v: 1, built: new Date().toISOString().slice(0, 10), latest, radiusM: RADIUS_M, county: config.county, countyName: config.countyName, unit: config.unit === 'areas' ? 'areas' : 'towns', towns };
 }
 
