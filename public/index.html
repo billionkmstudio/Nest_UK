@@ -965,7 +965,7 @@ const T = {
     tab_overview:'Overview', tab_safety:'Safety', tab_flood:'Flood', tab_schools:'Schools', tab_life:'Daily life', tab_roads:'Transport', tab_housing:'Housing',
     hp_trend:'Average price, last 12 months', hp_trend_alt:'Average price from {a} ({p}) to {b} ({q})', hp_h:'House prices', hp_load:'Loading house price data…', hp_avg:'Average price (all homes)', hp_det:'Detached', hp_semi:'Semi-detached', hp_terr:'Terraced', hp_flat:'Flat / maisonette', hp_chg:'Change over 12 months', hp_month:'Latest data: {m}. Source: HM Land Registry UK House Price Index.', hp_err:'House price data could not be loaded for this area.', hp_none:'House price data needs the data service to be set up, so it is not shown here.', hp_note:'This is an average for the whole council area, so it hides big differences between streets and between cheap and expensive neighbourhoods. It is based on completed sales, not current asking prices. Use it only as a rough guide.', hp_norent:'Average rents are not shown yet.', hp_link:'UK House Price Index (HM Land Registry) ↗',
     hs_council:'Local council area', hs_h1:'Council housing and affordable housing', hs_p1:'Whether you can apply for council housing, and how long the wait is, is decided by the local council. Rules usually include residence and eligibility conditions, and these can depend on your immigration status. This tool cannot tell you if you qualify, so please check with the council.', hs_p2:'There is no free national list of individual council or affordable homes. The nearby figures come from the 2021 Census, in small areas of about 125 homes, so they show roughly where social housing is, not individual houses. The links below are official.', hs_b1:'Apply for council housing (GOV.UK, England)', hs_b2:'Affordable home ownership schemes (GOV.UK, England)', hs_b3:'Find your local council', hs_b4:'Northern Ireland Housing Executive', hs_other:'Housing rules in Scotland, Wales and Northern Ireland are different from England. Please use your council or the national housing body for the correct steps.', hs_h2:'Japanese knotweed', hs_p3:'Japanese knotweed is an invasive plant that is hard to remove and can affect mortgages and insurance. This tool has no knotweed map, because there is no free official one. When buying, ask the seller about it (the standard property information form has a knotweed question) and ask your surveyor to look for it.', hs_b5:'Japanese knotweed guidance (GOV.UK)', nb_h:'Social rented homes nearby', nb_load:'Loading nearby housing data…', nb_err:'Nearby housing data could not be loaded.', nb_500:'Within 500 m', nb_1k:'Within 1 km', nb_hh:'households', nb_share:'Social rented, share of homes within 1 km', nb_council:'Rented from the council', nb_other:'Rented from a housing association', nb_shared:'Shared ownership', nb_of:'of {n} households', nb_nearest:'The nearest small area with social rented homes is {d}, with about {n} households.', nb_none:'No social rented homes are recorded within 1 km (0.6 miles).', nm_social:'About {n} social rented households', lg_social:'Social rented homes', lgrp_housing:'Housing', lg_social_size:'A bigger dot means more social rented households.', nb_what:'Social rented homes are homes rented from a council or a housing association at below-market rent. Council houses are one kind. Shared ownership is a form of affordable home ownership.', nb_split:'Council and housing association homes are added together here. The Census asked households who their landlord is, and many tenants of homes that a council has handed to a housing association still answer \u201ccouncil\u201d, so the split is only shown for councils where the Census agrees with the council\u2019s own figures.', nb_area:'Each purple dot on the map is the middle of a small area of about 125 homes, so a dot does not mark one house, and the social homes can be anywhere inside the area. Numbers are households on Census day, 21 March 2021, and were adjusted slightly by the Office for National Statistics to protect privacy. Buildings finished since then are not included.', nb_src:'Source: Census 2021, table TS054 (tenure of household), Office for National Statistics, England and Wales only, Open Government Licence v3.0.', sh_h:'Council and affordable homes', sh_council:'Council-owned homes', sh_ha:'Housing association homes', sh_new:'New affordable homes, {y}', sh_new5:'New affordable homes since {y}', sh_by:'New affordable homes in {y} by type:', sh_none:'none recorded', sh_t_sr:'Social rent', sh_t_ar:'Affordable rent', sh_t_ir:'Intermediate rent', sh_t_so:'Shared ownership', sh_t_aho:'Other affordable ownership', sh_t_fh:'First Homes', sh_t_un:'Type not recorded', sh_transfer:'This council has handed most or all of its homes to housing associations, so it owns few itself. The homes are mostly run by housing associations, but you normally still apply through the council.', sh_note_stock:'These are existing homes in the whole council area, not homes free to rent now. The housing association figure only counts providers with 1,000 or more homes, so the real number is a little higher. Together they are the area\u2019s social housing.', sh_note_new:'New affordable homes are homes finished in each financial year (April to March), built new or bought in. Homes sold or demolished are not subtracted, and the street you searched could be far from where they were built.', sh_terms:'Social rent is the lowest rent, set by a national formula. Affordable rent is up to 80% of the local market rent (this includes London Affordable Rent). Intermediate rent sits between social and market rent. Shared ownership means buying a share and paying rent on the rest. Other affordable ownership and First Homes are homes sold at a discount to eligible buyers.', sh_src:'Source: Ministry of Housing, Communities and Local Government (England only), Open Government Licence v3.0. Newest data: homes owned at {d}; new homes up to the {y} financial year. Homes whose local authority is not recorded are left out.',
-    st_crime:'Crime', st_flood:'Flood', st_places:'Places', st_roads:'Roads', st_bus:'Buses', st_cars:'Fuel & EV', st_weather:'Weather',
+    st_crime:'Crime', st_flood:'Flood', st_places:'Places', st_roads:'Roads', st_bus:'Buses', st_cars:'Fuel, EV & parking', st_weather:'Weather',
     finding:'Finding the location…',
     errNotFound:'We could not find that address. Try the postcode instead.',
     errScot:'Police Scotland data is not in the police.uk open data. This tool covers England, Wales and Northern Ireland.',
@@ -1030,11 +1030,16 @@ const T = {
     lgrp_school:'Schools', lgrp_transport:'Transport', lgrp_life:'Daily life', lgrp_safety:'Safety',
     lg_uni:'University / college', lg_aroad:'Other A-road', lg_crime:'Crime dots', lg_cafe:'Cafés & pubs', lg_busstop:'Bus stops', lg_busroute:'Bus routes', lg_buslive:'Live buses', live_load:'Loading live buses…', live_n:'{n} buses moving now · updated {time}', live_none:'No live buses reported here right now (live data covers England only; some operators do not publish).', live_err:'Live bus feed unavailable ({e}).', live_note:'Positions are GPS from bus operators via the DfT Bus Open Data Service, refreshed every ~15 s. Coverage is incomplete.', live_pop:'Live bus', live_to:'to', live_out:'Live buses are available for England only.',
     nm_busstop:'Bus stop', nm_takeaway:'Takeaway', nm_pub:'Pub', nm_cafe:'Café',
-    lg_fuel:'Petrol stations', lg_ev:'EV charging', nm_fuel:'Petrol station', nm_ev:'EV charging site',
+    lg_fuel:'Petrol stations', lg_ev:'EV charging', nm_fuel:'Petrol station', nm_ev:'EV charging site', lg_park:'Car parks', nm_park:'Car park', nm_pr:'Park & ride',
     cars_title:'Petrol stations and EV charging', cars_nearFuel:'Nearest petrol station', cars_fuelCount:'Petrol stations within 3 miles',
     cars_nearEv:'Nearest EV charging site', cars_evCount:'EV charging sites within 2 miles', cars_rapid:'Tagged 50 kW or faster',
     cars_listFuel:'Nearest petrol stations', cars_listEv:'Nearest EV charging sites', cars_none:'None found in this range.',
     cars_open247:'Open 24 hours', cars_points:'{n} points', cars_fee:'Paid',
+    pk_title:'Car parks', pk_near:'Nearest public car park', pk_count:'Public car parks within 1 mile', pk_spaces:'Known spaces within 1 mile',
+    pk_spacesSub:'Only where the size is mapped', pk_pr:'Nearest park & ride', pk_list:'Nearest car parks', pk_listPr:'Park & ride within 6 miles',
+    pk_none:'None found in this range.', pk_spacesN:'{n} spaces', pk_free:'Free', pk_paid:'Paid', pk_multi:'Multi-storey', pk_under:'Underground',
+    pk_disabled:'{n} disabled', pk_maxstay:'Max {v}', pk_unavail:'Car park data is unavailable right now.',
+    pk_note:'Car parks come from OpenStreetMap. Customer-only, permit-only and on-street bays are left out. Prices, opening times and whether a car park is free can change and are often not mapped, so check the signs, the council website or the RingGo / JustPark app before you park.',
     cars_note:'Locations come from OpenStreetMap volunteers, so a new or closed site can be missing or wrong, and power ratings are only shown where they have been added. Fuel prices, whether a charger is working or free, and queue times are not shown. Check the operator’s app or Zap-Map before you set out.',
     wx_title:'Weather', wx_today:'Today', wx_tomorrow:'Tomorrow', wx_rain:'Rain', wx_wind:'Wind', wx_gust:'gusts {n} mph',
     wx_src:'Forecast: MET Norway (CC BY 4.0), updated {time}. Today shows the rest of the day.', wx_stale:'The forecast service did not answer, so this may be a little out of date.',
@@ -1076,7 +1081,7 @@ const T = {
     tab_overview:'總覽', tab_safety:'治安', tab_flood:'水浸', tab_schools:'學校', tab_life:'生活配套', tab_roads:'交通', tab_housing:'房屋',
     hp_trend:'過去 12 個月平均樓價走勢', hp_trend_alt:'平均樓價由 {a}（{p}）到 {b}（{q}）', hp_h:'樓價', hp_load:'正在載入樓價資料…', hp_avg:'平均樓價（所有類型）', hp_det:'獨立屋', hp_semi:'半獨立屋', hp_terr:'排屋', hp_flat:'公寓／單位', hp_chg:'過去 12 個月變化', hp_month:'最新資料：{m}。來源：HM Land Registry（土地註冊處）UK House Price Index。', hp_err:'載入不到這個地區的樓價資料。', hp_none:'樓價資料需要設定資料服務，所以暫時不顯示。', hp_note:'這是整個議會區域的平均數，會掩蓋街道之間、平價區和貴價區之間的巨大差異。它根據已成交的個案計算，不是現時的叫價。只能當作大方向參考。', hp_norent:'暫時未有平均租金資料。', hp_link:'UK House Price Index（HM Land Registry）↗',
     hs_council:'所屬議會（地區）', hs_h1:'社會房屋（Council housing）與可負擔房屋', hs_p1:'能否申請 council housing、要輪候多久，由所屬議會決定。通常有居住和資格要求，這些要求可能與你的身份有關。這個網頁無法判斷你是否符合資格，請直接向議會查詢。', hs_p2:'英國沒有免費的全國名單列出個別 council 或可負擔房屋。附近的數字來自 2021 年人口普查，以約 125 戶為一個小區域，所以只能顯示社會房屋大概在哪裡，不是個別房屋。下面的連結都是官方頁面。', hs_b1:'申請 council housing（GOV.UK，英格蘭）', hs_b2:'可負擔購屋計劃（GOV.UK，英格蘭）', hs_b3:'查詢你所屬的議會', hs_b4:'北愛爾蘭房屋署（NI Housing Executive）', hs_other:'蘇格蘭、威爾斯和北愛爾蘭的房屋制度與英格蘭不同，請向當地議會或全國房屋機構查詢正確步驟。', hs_h2:'日本虎杖（Japanese knotweed）', hs_p3:'日本虎杖是一種很難清除的入侵植物，可能影響按揭和保險。這個網頁沒有虎杖地圖，因為沒有免費的官方資料。買樓時請向賣家查詢（標準的物業資料表格有虎杖的問題），並請驗樓師留意。', hs_b5:'日本虎杖指引（GOV.UK）', nb_h:'附近的社會租屋', nb_load:'正在載入附近房屋資料…', nb_err:'載入不到附近的房屋資料。', nb_500:'500 米內', nb_1k:'1 公里內', nb_hh:'戶', nb_share:'1 公里內社會租屋佔住戶比例', nb_council:'向議會租', nb_other:'向房屋協會租', nb_shared:'共享業權', nb_of:'（該區共 {n} 戶）', nb_nearest:'最近有社會租屋的小區域距離 {d}，約 {n} 戶。', nb_none:'1 公里（約 0.6 英里）內沒有社會租屋紀錄。', nm_social:'約 {n} 戶社會租屋', lg_social:'社會租屋', lgrp_housing:'房屋', lg_social_size:'圓點越大，社會租屋戶數越多。', nb_what:'社會租屋是向議會或房屋協會租住、租金低於市價的房屋，council house 是其中一種。共享業權是可負擔置業的一種方式。', nb_split:'這裡把議會和房屋協會的房屋加在一起。人口普查是問住戶誰是業主，很多住在「議會已轉交房屋協會」的房屋的租客仍然答「議會」，所以只有人口普查和議會自己的數字吻合的地區，才分開顯示。', nb_area:'地圖上每個紫色圓點是約 125 戶的小區域的中心，不是個別房屋的位置，社會租屋可以在區域內任何地方。數字是 2021 年 3 月 21 日人口普查當日的住戶數，英國國家統計局為保護私隱稍作調整。之後新落成的房屋沒有計算在內。', nb_src:'來源：2021 年人口普查表 TS054（住戶租住類型），英國國家統計局（Office for National Statistics），只涵蓋英格蘭及威爾斯，Open Government Licence v3.0。', sh_h:'社會房屋與可負擔房屋', sh_council:'議會擁有的房屋', sh_ha:'房屋協會擁有的房屋', sh_new:'{y} 年度新增可負擔房屋', sh_new5:'{y} 年度起新增可負擔房屋', sh_by:'{y} 年度新增可負擔房屋（按類型）：', sh_none:'沒有紀錄', sh_t_sr:'社會租屋', sh_t_ar:'可負擔租屋', sh_t_ir:'中間租屋', sh_t_so:'共享業權', sh_t_aho:'其他可負擔置業', sh_t_fh:'首置屋（First Homes）', sh_t_un:'類型未有紀錄', sh_transfer:'這個議會已把大部分或全部房屋交給房屋協會管理，所以自己擁有的很少。這些房屋大多由房屋協會營運，但申請通常仍然要經議會。', sh_note_stock:'這些是整個議會區域現有的房屋，不是現在有空置可租的數量。房屋協會的數字只計算擁有 1,000 間或以上房屋的機構，所以實際數字會稍高。兩者加起來就是這個地區的社會房屋。', sh_note_new:'新增可負擔房屋是每個財政年度（4 月至翌年 3 月）落成的數量，包括新建和買入的。已出售或拆卸的沒有扣除，而且你搜尋的街道可能離這些房屋的位置很遠。', sh_terms:'社會租屋租金最低，由全國統一公式計算。可負擔租屋最高為當地市價租金的 80%（包括倫敦的 London Affordable Rent）。中間租屋租金介乎社會租屋和市價之間。共享業權是買入部分業權，餘下部分繳租。其他可負擔置業和 First Homes 是以折扣價售予合資格買家的房屋。', sh_src:'來源：英國住房、社區及地方政府部（Ministry of Housing, Communities and Local Government，只涵蓋英格蘭），Open Government Licence v3.0。最新資料：房屋存量為 {d}；新增房屋至 {y} 財政年度。沒有紀錄所屬議會的房屋不計算在內。',
-    st_crime:'罪案', st_flood:'水浸', st_places:'地點', st_roads:'道路', st_bus:'巴士', st_cars:'油站及充電站', st_weather:'天氣',
+    st_crime:'罪案', st_flood:'水浸', st_places:'地點', st_roads:'道路', st_bus:'巴士', st_cars:'油站、充電站及停車場', st_weather:'天氣',
     finding:'正在搵地點…',
     errNotFound:'搵唔到這個地址，請改用郵編試試。',
     errScot:'police.uk 開放資料不包括蘇格蘭警方的數據，本工具只涵蓋英格蘭、威爾斯及北愛爾蘭。',
@@ -1136,11 +1141,16 @@ const T = {
     lgrp_school:'學校', lgrp_transport:'交通', lgrp_life:'生活', lgrp_safety:'治安',
     lg_uni:'大學／學院', lg_aroad:'其他 A 字頭公路', lg_crime:'罪案點', lg_cafe:'咖啡店及酒吧', lg_busstop:'巴士站', lg_busroute:'巴士路線', lg_buslive:'實時巴士', live_load:'正在載入實時巴士…', live_n:'現時有 {n} 輛巴士行駛中 · 更新於 {time}', live_none:'此處暫時沒有實時巴士資料（實時資料只涵蓋英格蘭，部分營辦商未有提供）。', live_err:'實時巴士資料暫時無法取得（{e}）。', live_note:'位置為營辦商經英國交通部 Bus Open Data Service 提供的 GPS，約每 15 秒更新，覆蓋並不完整。', live_pop:'實時巴士', live_to:'往', live_out:'實時巴士只支援英格蘭。',
     nm_busstop:'巴士站', nm_takeaway:'外賣店', nm_pub:'酒吧', nm_cafe:'咖啡店',
-    lg_fuel:'油站', lg_ev:'電動車充電站', nm_fuel:'油站', nm_ev:'電動車充電站',
+    lg_fuel:'油站', lg_ev:'電動車充電站', nm_fuel:'油站', nm_ev:'電動車充電站', lg_park:'停車場', nm_park:'停車場', nm_pr:'Park & Ride 轉乘停車場',
     cars_title:'油站及電動車充電站', cars_nearFuel:'最近油站', cars_fuelCount:'3 英里內油站數目',
     cars_nearEv:'最近電動車充電站', cars_evCount:'2 英里內充電站數目', cars_rapid:'標示 50 kW 或以上',
     cars_listFuel:'最近油站', cars_listEv:'最近電動車充電站', cars_none:'範圍內找不到。',
     cars_open247:'24 小時營業', cars_points:'{n} 個充電位', cars_fee:'收費',
+    pk_title:'停車場', pk_near:'最近公眾停車場', pk_count:'1 英里內公眾停車場數目', pk_spaces:'1 英里內已知車位',
+    pk_spacesSub:'只計已填寫車位數的停車場', pk_pr:'最近 Park & Ride 轉乘停車場', pk_list:'最近停車場', pk_listPr:'6 英里內 Park & Ride',
+    pk_none:'範圍內找不到。', pk_spacesN:'{n} 個車位', pk_free:'免費', pk_paid:'收費', pk_multi:'多層', pk_under:'地下',
+    pk_disabled:'{n} 個傷殘車位', pk_maxstay:'最長 {v}', pk_unavail:'停車場資料暫時未能載入。',
+    pk_note:'停車場資料來自 OpenStreetMap，已剔除只限顧客、只限持證及路邊咪錶位。收費、開放時間及是否免費經常變動，亦未必有人填寫，泊車前請看現場告示、Council 網站或 RingGo / JustPark App。',
     cars_note:'位置來自 OpenStreetMap 志願者，新開或已結業的地點可能漏列或有誤，功率亦只在有人填寫時才顯示。這裡不顯示油價、充電站是否運作或免費，以及排隊情況。出發前請查看營運商 App 或 Zap-Map。',
     wx_title:'天氣', wx_today:'今日', wx_tomorrow:'明日', wx_rain:'降雨', wx_wind:'風速', wx_gust:'陣風 {n} 英里/小時',
     wx_src:'天氣預報：MET Norway（CC BY 4.0），更新時間 {time}。「今日」只顯示當天餘下時間。', wx_stale:'天氣服務暫時沒有回應，資料可能稍為過時。',
@@ -1452,9 +1462,35 @@ function summariseCars(elements, geo){
   const evM = merge(ev), fuelM = fuel.sort((a, b) => a.d - b.d);
   return {fuel:fuelM, ev:evM, evRapid:evM.filter(e => e.kw >= 50).length};
 }
+const PR_RE = /^(yes|bus|train|tram|subway|metro)$/;
+function summariseParking(elements, geo){
+  const park = [], pr = [], seen = new Set();
+  elements.forEach(el => {
+    const k = el.type + el.id; if (seen.has(k)) return; seen.add(k);
+    const tg = el.tags || {};
+    if (tg.amenity !== 'parking') return;
+    const c = el.center || (el.lat !== undefined ? {lat:el.lat, lon:el.lon} : null);
+    if (!c) return;
+    const d = haversine(geo.lat, geo.lng, c.lat, c.lon);
+    const cap = parseInt(tg.capacity, 10), dis = parseInt(tg['capacity:disabled'], 10);
+    const x = {name:tg.name || tg.operator || '', d, la:c.lat, ln:c.lon,
+      cap:isFinite(cap) && cap > 0 && cap < 20000 ? cap : null, dis:isFinite(dis) && dis > 0 ? dis : null,
+      fee:tg.fee === 'yes' ? 'yes' : tg.fee === 'no' ? 'no' : '',
+      kind:tg.parking === 'multi-storey' ? 'multi' : tg.parking === 'underground' ? 'under' : '',
+      maxstay:(tg.maxstay || '').slice(0, 20), pr:PR_RE.test(tg.park_ride || '')};
+    if (x.pr) pr.push(x);
+    const blocked = /^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$/.test(tg.access || '');
+    if (d <= 1600 && !blocked) park.push(x);
+  });
+  park.sort((a, b) => a.d - b.d); pr.sort((a, b) => a.d - b.d);
+  return {park, pr};
+}
 async function loadCars(item){
-  const els = await overpassKind('cars', item.geo.lat, item.geo.lng);
-  item.cars = {data:summariseCars(els, item.geo)};
+  const [cars, park] = await Promise.allSettled([overpassKind('cars', item.geo.lat, item.geo.lng), overpassKind('park', item.geo.lat, item.geo.lng)]);
+  if (cars.status !== 'fulfilled' && park.status !== 'fulfilled') throw cars.reason;
+  const data = cars.status === 'fulfilled' ? summariseCars(cars.value, item.geo) : {fuel:[], ev:[], evRapid:0, fuelErr:true};
+  data.parking = park.status === 'fulfilled' ? summariseParking(park.value, item.geo) : null;
+  item.cars = {data};
 }
 async function loadWeather(item){
   const AB = apiBase();
@@ -1994,6 +2030,7 @@ function carsBlock(d){
   const item = d.item, C = d.cars;
   const head3 = '<h3 class="sec">' + esc(t('cars_title')) + '</h3>';
   if (!C) return '<div class="blk">' + head3 + '<p class="dir">' + (item.mod.cars === 'run' ? '…' : esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':cars">' + esc(t('retry')) + '</button>') + '</p></div>';
+  if (C.fuelErr) return '<div class="blk">' + head3 + '<p class="dir">' + esc(t('unavailable')) + ' <button type="button" class="linkbtn" data-retry="' + item.i + ':cars">' + esc(t('retry')) + '</button></p></div>' + parkBlock(d);
   const nf = C.fuel[0], ne = C.ev[0], MI3 = 3 * MI, MI2 = 2 * MI;
   const fuelRow = f => '<li><span class="nm">' + esc(f.name || t('nm_fuel')) + (f.h247 ? '<span class="badge">' + esc(t('cars_open247')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(f.d)) + '</span></li>';
   const evRow = e => '<li><span class="nm">' + esc(e.name || t('nm_ev')) + (evExtra(e) ? '<span class="badge">' + esc(evExtra(e)) + '</span>' : '') + (e.fee ? '<span class="badge">' + esc(t('cars_fee')) + '</span>' : '') + '</span><span class="dd">' + esc(distLine(e.d)) + '</span></li>';
@@ -2008,7 +2045,39 @@ function carsBlock(d){
     '<div class="cols"><div><h3 class="sec">' + esc(t('cars_listFuel')) + '</h3><ul class="plist">' + rows(C.fuel, fuelRow) + '</ul></div>' +
     '<div><h3 class="sec">' + esc(t('cars_listEv')) + '</h3><ul class="plist">' + rows(C.ev, evRow) + '</ul></div></div>' +
     '<ul class="notes"><li>' + esc(t('cars_note')) + '</li></ul>' +
-    '<div class="btnrow"><a href="https://www.zap-map.com/" target="_blank" rel="noopener">Zap-Map</a></div></div>';
+    '<div class="btnrow"><a href="https://www.zap-map.com/" target="_blank" rel="noopener">Zap-Map</a></div></div>' +
+    parkBlock(d);
+}
+function parkExtra(p){
+  const bits = [];
+  if (p.kind) bits.push(t('pk_' + p.kind));
+  if (p.cap) bits.push(t('pk_spacesN', {n:p.cap}));
+  if (p.dis) bits.push(t('pk_disabled', {n:p.dis}));
+  if (p.maxstay) bits.push(t('pk_maxstay', {v:p.maxstay}));
+  return bits.join(' · ');
+}
+function parkBlock(d){
+  const C = d.cars, P = C && C.parking;
+  const head3 = '<h3 class="sec">' + esc(t('pk_title')) + '</h3>';
+  if (!P) return '<div class="blk">' + head3 + '<p class="dir">' + esc(t('pk_unavail')) + ' <button type="button" class="linkbtn" data-retry="' + d.item.i + ':cars">' + esc(t('retry')) + '</button></p></div>';
+  const in1 = P.park.filter(p => p.d <= MI), np = P.park[0], npr = P.pr[0];
+  const spaces = in1.reduce((a, p) => a + (p.cap || 0), 0);
+  const row = p => '<li><span class="nm">' + esc(p.name || (p.pr ? t('nm_pr') : t('nm_park'))) +
+    (parkExtra(p) ? '<span class="badge">' + esc(parkExtra(p)) + '</span>' : '') +
+    (p.fee ? '<span class="badge">' + esc(t(p.fee === 'yes' ? 'pk_paid' : 'pk_free')) + '</span>' : '') +
+    '</span><span class="dd">' + esc(p.d > 2 * MI ? fmtDist(p.d) : distLine(p.d)) + '</span></li>';
+  const rows = (arr, n) => arr.slice(0, n).map(row).join('') || '<li><span class="empty">' + esc(t('pk_none')) + '</span></li>';
+  return '<div class="blk">' + head3 +
+    '<div class="stats" style="margin-top:0">' +
+      stat(t('pk_near'), np ? esc(fmtDist(np.d)) : '–', np ? np.name : '') +
+      stat(t('pk_count'), String(in1.length)) +
+      stat(t('pk_spaces'), spaces ? String(spaces) : '–', t('pk_spacesSub')) +
+      stat(t('pk_pr'), npr ? esc(fmtDist(npr.d)) : '–', npr ? npr.name : '') +
+    '</div>' +
+    '<div class="cols"><div><h3 class="sec">' + esc(t('pk_list')) + '</h3><ul class="plist">' + rows(P.park, 6) + '</ul></div>' +
+    '<div><h3 class="sec">' + esc(t('pk_listPr')) + '</h3><ul class="plist">' + rows(P.pr, 4) + '</ul></div></div>' +
+    '<ul class="notes"><li>' + esc(t('pk_note')) + '</li></ul>' +
+    '<div class="btnrow"><a href="https://www.justpark.com/" target="_blank" rel="noopener">JustPark</a> <a href="https://www.ringgo.co.uk/" target="_blank" rel="noopener">RingGo</a></div></div>';
 }
 function roadsHTML(d){
   const item = d.item, R = d.roads, p = d.pl;
@@ -2114,8 +2183,9 @@ function overviewHTML(ds){
       {l:t('lf_station'), mod:'places', f:d => d.pl && d.pl.extraOk ? nearest(d.pl.stations) : null},
       {l:t('bus_nearStop'), mod:'bus', best:'low', f:d => d.bus ? nearest(d.bus.stops) : null},
       {l:t('bus_routes'), mod:'bus', best:'high', f:d => d.bus ? num(d.bus.routes.length, String(d.bus.routes.length)) : null},
-      {l:t('cars_nearFuel'), mod:'cars', best:'low', f:d => d.cars ? nearest(d.cars.fuel) : null},
-      {l:t('cars_nearEv'), mod:'cars', best:'low', f:d => d.cars ? nearest(d.cars.ev) : null}
+      {l:t('cars_nearFuel'), mod:'cars', best:'low', f:d => d.cars && !d.cars.fuelErr ? nearest(d.cars.fuel) : null},
+      {l:t('cars_nearEv'), mod:'cars', best:'low', f:d => d.cars && !d.cars.fuelErr ? nearest(d.cars.ev) : null},
+      {l:t('pk_near'), mod:'cars', best:'low', f:d => d.cars && d.cars.parking ? nearest(d.cars.parking.park) : null}
     ]}
   ];
   const headCells = ds.map(d => '<th><span class="chip ' + IDCLS[d.item.i] + '">' + LETTERS[d.item.i] + '</span><div style="margin-top:6px;color:var(--ink);font-weight:600;overflow-wrap:anywhere">' + esc(d.item.geo.label) + '</div></th>').join('');
@@ -2181,20 +2251,20 @@ const LAYERS = {
   station:{color:'#212529', key:'lg_station'},
   motor:{color:'#e03131', key:'lg_motor', line:true, w:5}, trunk:{color:'#f08c00', key:'lg_trunk', line:true, w:4}, aroad:{color:'#fab005', key:'lg_aroad', line:true, w:2.5},
   super:{color:'#2f9e44', key:'lg_super'}, mall:{color:'#e64980', key:'lg_mall'}, asian:{color:'#e8590c', key:'lg_asian'}, sport:{color:'#9c36b5', key:'lg_sport'}, food:{color:'#ff8787', key:'lg_food'}, cafe:{color:'#a9805b', key:'lg_cafe'},
-  fuel:{color:'#c2410c', key:'lg_fuel'}, ev:{color:'#15803d', key:'lg_ev'},
+  fuel:{color:'#c2410c', key:'lg_fuel'}, ev:{color:'#15803d', key:'lg_ev'}, park:{color:'#1971c2', key:'lg_park'},
   busstop:{color:'#0b7285', key:'lg_busstop'}, busroute:{color:'#0ca678', key:'lg_busroute', line:true, w:3}, buslive:{color:'#e8590c', key:'lg_buslive'},
   crime:{color:'#d6336c', key:'lg_crime'},
   social:{color:'#7048e8', key:'lg_social'}
 };
 const BUS_API = (window.NEST_BUS_API || '').trim();   // Vercel proxy URL, e.g. https://xxx.vercel.app/api/buses ; empty = live layer hidden
 const LIVE_ON = !!BUS_API;
-const LAYER_GROUPS = [['prim sec nurs uni indep', 'lgrp_school'], ['station busstop busroute' + (LIVE_ON ? ' buslive' : '') + ' motor trunk aroad fuel ev', 'lgrp_transport'], ['super mall asian sport food cafe', 'lgrp_life'], ['crime', 'lgrp_safety'], ['social', 'lgrp_housing']].map(x => [x[0].split(' '), x[1]]);
+const LAYER_GROUPS = [['prim sec nurs uni indep', 'lgrp_school'], ['station busstop busroute' + (LIVE_ON ? ' buslive' : '') + ' motor trunk aroad fuel ev park', 'lgrp_transport'], ['super mall asian sport food cafe', 'lgrp_life'], ['crime', 'lgrp_safety'], ['social', 'lgrp_housing']].map(x => [x[0].split(' '), x[1]]);
 const TOPIC_LAYERS = {
   overview:['prim', 'sec', 'nurs', 'uni', 'station', 'motor', 'trunk', 'super', 'mall'],
   safety:['crime'], flood:[], housing:['social'],
   schools:['prim', 'sec', 'nurs', 'uni', 'indep'],
   life:['super', 'mall', 'asian', 'sport', 'food', 'cafe'],
-  roads:['station', 'busstop', 'busroute'].concat(LIVE_ON ? ['buslive'] : [], ['motor', 'trunk', 'aroad', 'fuel', 'ev'])
+  roads:['station', 'busstop', 'busroute'].concat(LIVE_ON ? ['buslive'] : [], ['motor', 'trunk', 'aroad', 'fuel', 'ev', 'park'])
 };
 function setTopicLayers(topic){ state.layers = new Set(TOPIC_LAYERS[topic] || []); }
 function ringRadius(d){
@@ -2234,6 +2304,10 @@ function buildScene(d){
   if (d.cars){
     addPts('fuel', d.cars.fuel, 40, 6, null, () => t('nm_fuel'));
     addPts('ev', d.cars.ev.map(e => Object.assign({}, e, {extra:evExtra(e)})), 60, 6, null, () => t('nm_ev'));
+    if (d.cars.parking){
+      const pk = d.cars.parking, ids = new Set(pk.park.map(p => p.la + ',' + p.ln));
+      addPts('park', pk.park.concat(pk.pr.filter(p => !ids.has(p.la + ',' + p.ln))).map(p => Object.assign({}, p, {extra:parkExtra(p)})), 60, 6, null, p => p.pr ? t('nm_pr') : t('nm_park'));
+    }
   }
   const nr = d.item.near;
   if (nr && nr.s === 'ok'){

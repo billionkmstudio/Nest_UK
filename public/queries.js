@@ -51,5 +51,14 @@ function carsQuery(lat, lng) {
     '  nwr["amenity"="charging_station"](around:3300,' + p + ');\n' +
     ');\nout center tags qt;';
 }
-  return { cars: carsQuery, edu: eduQuery, extra: extraQuery, life: lifeQuery, roads: roadsQuery, bus: busQuery };
+// Public car parks near the address, plus park & ride sites further out. Private, customer-only, permit-only and
+// on-street bays are left out: on-street parking is mapped too unevenly in OpenStreetMap to count fairly.
+function parkQuery(lat, lng) {
+  const p = lat + ',' + lng;
+  return '[out:json][timeout:30];\n(\n' +
+    '  nwr["amenity"="parking"]["access"!~"^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$"]["parking"!~"^(street_side|lane|on_street|layby|half_on_kerb|on_kerb|shoulder)$"](around:1600,' + p + ');\n' +
+    '  nwr["amenity"="parking"]["park_ride"~"^(yes|bus|train|tram|subway|metro)$"](around:10000,' + p + ');\n' +
+    ');\nout center tags qt;';
+}
+  return { cars: carsQuery, park: parkQuery, edu: eduQuery, extra: extraQuery, life: lifeQuery, roads: roadsQuery, bus: busQuery };
 }));
