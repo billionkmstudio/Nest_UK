@@ -205,6 +205,11 @@ const none = prepare({ towns: [{ slug: 'big-town', name: 'Big Town', county: 'su
 check('no private schools within 5 miles: says so, no empty table', route('/uk/surrey/big-town/schools', none).includes('lists no independent (fee-paying) schools within 5 miles') && !route('/uk/surrey/big-town/schools', none).includes('<th>School</th><th class="n">Distance</th></tr></table>'));
 
 /* ---- car parks ---- */
+const ovFetch = async (u, o) => String(u).includes('interpreter') ? new Response(JSON.stringify({ elements: [{ type: 'node', id: 7, lat: 51.2005, lon: -0.5005, tags: { amenity: 'parking', name: 'Alpha Car Park', capacity: '50' } }] })) : fakeFetch(u, o);
+const withOv = await buildAreas({ fetchFn: ovFetch, schoolRows: rows, config, delayMs: 0 });
+check('build: one region Overpass call gives each place its own car parks', withOv.towns[0].parking.count1mi === 1 && withOv.towns[0].parking.list[0].name === 'Alpha Car Park' && withOv.towns[1].parking.count1mi === 0, withOv.towns.map(t => t.parking));
+const keepPk = await buildAreas({ fetchFn: fakeFetch, schoolRows: rows, config, previous: withOv, delayMs: 0 });
+check('build: Overpass down keeps previous car parks', keepPk.towns[0].parking.list[0].name === 'Alpha Car Park');
 const pk = summariseParking([
   { type: 'way', id: 1, center: { lat: 51.2370, lon: -0.5710 }, tags: { amenity: 'parking', name: 'York Road', parking: 'multi-storey', capacity: '605', fee: 'yes' } },
   { type: 'way', id: 1, center: { lat: 51.2370, lon: -0.5710 }, tags: { amenity: 'parking', name: 'York Road' } },

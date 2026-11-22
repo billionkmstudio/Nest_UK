@@ -10,9 +10,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
-
-const Q = createRequire(import.meta.url)('../public/queries.js');   // same Overpass query as the live site's car park section
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const POLICE = 'https://data.police.uk/api/';
@@ -84,7 +81,7 @@ export function summariseSchools(rows, lat, lng) {
   };
 }
 
-// Overpass elements (from Q.park) -> public car parks within 1 mile of the centre, plus park & ride sites.
+// Overpass elements -> public car parks within 1 mile of the centre, plus park & ride sites.
 const PARK_BLOCKED = /^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$/;
 const PR_RE = /^(yes|bus|train|tram|subway|metro)$/;
 export function summariseParking(elements, lat, lng) {
@@ -102,7 +99,7 @@ export function summariseParking(elements, lat, lng) {
       fee: tg.fee === 'yes' ? 'yes' : tg.fee === 'no' ? 'no' : null,
       kind: tg.parking === 'multi-storey' ? 'multi' : tg.parking === 'underground' ? 'under' : null,
       maxstay: tg.maxstay ? String(tg.maxstay).slice(0, 20) : null };
-    if (PR_RE.test(tg.park_ride || '')) pr.push(x);
+    if (PR_RE.test(tg.park_ride || '')) { if (d <= 10000) pr.push(x); }
     else if (d <= MI && !PARK_BLOCKED.test(tg.access || '')) park.push(x);
   }
   park.sort((a, b) => a.d - b.d); pr.sort((a, b) => a.d - b.d);
@@ -116,18 +113,29 @@ export function summariseParking(elements, lat, lng) {
     pr: pr.filter(p => p.name).slice(0, 3).map(p => strip({ name: p.name, d: p.d, cap: p.cap })),
   };
 }
+// One Overpass call per region (a box around all its places), then each place is cut out locally: far kinder to the
+// public Overpass servers than one call per place. Same filters as the live site's query (public/queries.js "park").
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.openstreetmap.fr/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-async function fetchParking(fetchFn, lat, lng) {
-  const body = 'data=' + encodeURIComponent(Q.park(lat, lng));
+export function regionParkingQuery(points) {
+  const lats = points.map(p => p[0]), lngs = points.map(p => p[1]);
+  const box = pad => [Math.min(...lats) - pad, Math.min(...lngs) - pad * 1.6, Math.max(...lats) + pad, Math.max(...lngs) + pad * 1.6].map(v => v.toFixed(4)).join(',');
+  return '[out:json][timeout:180];\n(\n' +
+    '  nwr["amenity"="parking"]["access"!~"^(private|no|customers|permit|residents|delivery|employees|permissive|destination)$"]["parking"!~"^(street_side|lane|on_street|layby|half_on_kerb|on_kerb|shoulder)$"](' + box(0.02) + ');\n' +
+    '  nwr["amenity"="parking"]["park_ride"~"^(yes|bus|train|tram|subway|metro)$"](' + box(0.1) + ');\n' +
+    ');\nout center tags qt;';
+}
+async function fetchRegionParking(fetchFn, points, log) {
+  const body = 'data=' + encodeURIComponent(regionParkingQuery(points));
   for (let i = 0; i < 4; i++) {
     try {
-      const r = await fetchFn(OVERPASS[i % OVERPASS.length], { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA }, signal: AbortSignal.timeout(45000) });
+      const r = await fetchFn(OVERPASS[i % OVERPASS.length], { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA }, signal: AbortSignal.timeout(200000) });
       if (r.ok) {
         const j = await r.json();
-        if (Array.isArray(j.elements) && !(j.remark && /timed out|out of memory/i.test(j.remark))) return summariseParking(j.elements, lat, lng);
+        if (Array.isArray(j.elements) && !(j.remark && /timed out|out of memory/i.test(j.remark))) { log('car parks: ' + j.elements.length + ' mapped in the region'); return j.elements; }
       }
-    } catch (e) { /* next mirror */ }
-    await new Promise(res => setTimeout(res, 2000 * (i + 1) * (globalThis.__FAST ? 0 : 1)));
+      log('car parks: Overpass HTTP ' + r.status);
+    } catch (e) { log('car parks: Overpass ' + (e && e.name)); }
+    await new Promise(res => setTimeout(res, 10000 * (i + 1) * (globalThis.__FAST ? 0 : 1)));
   }
   return null;
 }
@@ -152,6 +160,7 @@ export async function buildAreas({ fetchFn = fetch, schoolRows, config, previous
   const months = monthList(latest, 12);
   const prev = new Map(((previous && previous.towns) || []).map(t => [t.slug, t]));
   const towns = [];
+  const parkEls = await fetchRegionParking(fetchFn, config.towns.map(t => [t[1], t[2]]), log);
   for (const [name, lat, lng] of config.towns) {
     const slug = slugify(name);
     const crimeByMonth = {};
@@ -164,7 +173,7 @@ export async function buildAreas({ fetchFn = fetch, schoolRows, config, previous
     }
     let crime = summariseCrime(months, crimeByMonth);
     if (!crime && prev.get(slug)) { crime = prev.get(slug).crime; log('kept previous crime for ' + name); }
-    let parking = await fetchParking(fetchFn, lat, lng);
+    let parking = parkEls ? summariseParking(parkEls, lat, lng) : null;
     if (!parking && prev.get(slug) && prev.get(slug).parking) { parking = prev.get(slug).parking; log('kept previous car parks for ' + name); }
     log(name + ': ' + (crime ? crime.total + ' crimes' : 'no crime data') + ', ' + (parking ? parking.count1mi + ' car parks' : 'no car park data'));
     const town = { slug, name, county: config.county, lat, lng, crime, schools: summariseSchools(schoolRows, lat, lng) };
