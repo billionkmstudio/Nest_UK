@@ -5,6 +5,7 @@
 //   /uk/surrey/<town>                 town (or neighbourhood) page
 //   /uk/surrey/<town>/crime           crime page
 //   /uk/surrey/<town>/schools         schools page
+//   /uk/surrey/<town>/parking         car parks page (only where the data file has car parks for the town)
 //   /best/safest-towns-in-surrey      ranking ("safest-areas-in-birmingham" for a city)
 //   /zh/uk/...  /zh/best/...          Traditional Chinese versions of the same pages (hreflang-linked)
 //   /sitemap.xml                      all indexable pages of all regions
@@ -220,10 +221,10 @@ td.n,th.n{text-align:right;white-space:nowrap}.btn{display:inline-block;backgrou
 @media(prefers-color-scheme:dark){.btn{color:#10151f}}
 .mut{color:var(--mut);font-size:14px}.links a{display:inline-block;margin:4px 10px 4px 0}footer{padding-bottom:40px;margin-top:32px;color:var(--mut);font-size:13px}svg{max-width:100%;height:auto}`;
 
-const footEn = U => `<footer><p>Sources: crime data from <a href="https://data.police.uk/">data.police.uk</a>; school data from the Department for Education <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>. Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.</p>
+const footEn = U => `<footer><p>Sources: crime data from <a href="https://data.police.uk/">data.police.uk</a>; school data from the Department for Education <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>; car parks © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Contains public sector information licensed under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>.</p>
 <p>Figures are recorded crimes within about 600 m of ${U.centre}, not a rate per resident, and ${U.busy.toLowerCase()} record more crime because more people pass through. Use them to compare areas, then check the exact address.</p>
 <p><a href="/privacy">About &amp; privacy</a></p></footer>`;
-const footZh = U => `<footer><p>資料來源：罪案數字來自 <a href="https://data.police.uk/">data.police.uk</a>；學校資料來自英國教育部 <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>。內容包含根據 <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a> 授權的公共部門資料。</p>\n<p>數字為${U.zhC}約 600 米範圍內警方記錄的罪案宗數，並非按居民人口計算的比率；人流較多的${U.zhHub}記錄的罪案自然較多。請用來比較不同地區，再查看確實地址。地名及學校名稱保留英文，方便搜尋及核對。</p>
+const footZh = U => `<footer><p>資料來源：罪案數字來自 <a href="https://data.police.uk/">data.police.uk</a>；學校資料來自英國教育部 <a href="https://get-information-schools.service.gov.uk/">Get Information about Schools</a>；停車場資料 © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>。內容包含根據 <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a> 授權的公共部門資料。</p>\n<p>數字為${U.zhC}約 600 米範圍內警方記錄的罪案宗數，並非按居民人口計算的比率；人流較多的${U.zhHub}記錄的罪案自然較多。請用來比較不同地區，再查看確實地址。地名及學校名稱保留英文，方便搜尋及核對。</p>
 <p><a href="/privacy">About &amp; privacy（英文）</a></p></footer>`;
 
 function layout({ title, desc, path: p, crumbs, h1, body, noindex, ld, lang = 'en', D, hub }) {
@@ -267,6 +268,7 @@ function townPage(t, D) {
     ['Are there good schools near ' + t.name + '?', schoolSentence(t, D) + ' School quality is not rated here: check Ofsted and the school’s own information before deciding.'],
   ];
   if (hasIndep(s)) faq.push(['Are there private schools near ' + t.name + '?', indepSentence(t, D, true) + ' Fees and ages are not in the DfE register, so check each school’s own website.']);
+  if (hasParking(t)) faq.push(['Where can I park in ' + t.name + '?', parkingSentence(t, D)]);
   const nearby = t.nearby.length ? `<h2>Nearby ${U.pl}</h2><ul>${t.nearby.map(o => `<li><a href="${townPath(o)}">${esc(o.name)}</a> – ${ordinal(o.rank)} of ${D.count} for lowest recorded crime</li>`).join('')}</ul>` : '';
   const body = `<p>${esc(crimeSentence(t, D))}</p>
 <div class="card"><table><tr><th>Measure</th><th class="n">${esc(t.name)}</th></tr>
@@ -276,9 +278,10 @@ ${t.indexable ? `<tr><td>Rank (1 = lowest crime of ${D.count} ${esc(D.countyName
 <tr><td>State primary schools within 1 mile</td><td class="n">${s.primary1mi}</td></tr>
 <tr><td>State secondary schools within 3 miles</td><td class="n">${s.secondary3mi}</td></tr>
 <tr><td>Independent schools within 2 miles</td><td class="n">${s.independent2mi}</td></tr>
-${hasIndep(s) ? `<tr><td>Independent schools within 5 miles</td><td class="n">${s.independent5mi}</td></tr>` : ''}</table></div>
+${hasIndep(s) ? `<tr><td>Independent schools within 5 miles</td><td class="n">${s.independent5mi}</td></tr>` : ''}
+${hasParking(t) ? `<tr><td>Public car parks within 1 mile</td><td class="n">${t.parking.count1mi}</td></tr>` : ''}</table></div>
 ${cta(t, D)}
-<div class="links"><a href="${townPath(t)}/crime">Crime in ${esc(t.name)} in detail →</a><a href="${townPath(t)}/schools">Schools near ${esc(t.name)} →</a></div>
+<div class="links"><a href="${townPath(t)}/crime">Crime in ${esc(t.name)} in detail →</a><a href="${townPath(t)}/schools">Schools near ${esc(t.name)} →</a>${hasParking(t) ? `<a href="${townPath(t)}/parking">Car parks in ${esc(t.name)} →</a>` : ''}</div>
 <h2>Schools</h2><p>${esc(schoolSentence(t, D))}</p>
 <h2>Frequently asked questions</h2>${faq.map(f => `<h3>${esc(f[0])}</h3><p>${esc(f[1])}</p>`).join('')}
 ${nearby}${stamp(D)}`;
@@ -333,6 +336,80 @@ ${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a hr
   });
 }
 
+/* ----------------------------- car parks ----------------------------- */
+const hasParking = t => !!(t.parking && t.parking.count1mi > 0);
+const parkLink = t => hasParking(t) ? ' · <a href="' + townPath(t) + '/parking">Parking</a>' : '';
+const zhParkLink = t => hasParking(t) ? ' · <a href="' + zhPath(townPath(t)) + '/parking">停車場</a>' : '';
+function parkingSentence(t, D) {
+  const P = t.parking, U = unitOf(D), near = P.list[0], pr = P.pr && P.pr[0];
+  let s = 'OpenStreetMap lists ' + P.count1mi + ' public car ' + (P.count1mi === 1 ? 'park' : 'parks') + ' within 1 mile of ' + U.centre + ' in ' + t.name;
+  s += P.spaces1mi ? ', with at least ' + num(P.spaces1mi) + ' spaces where the size is mapped.' : '.';
+  if (P.multi1mi) s += ' ' + P.multi1mi + (P.multi1mi === 1 ? ' is a multi-storey or underground car park.' : ' are multi-storey or underground.');
+  if (near) s += ' The nearest named one is ' + near.name + ', about ' + miles(near.d) + ' away.';
+  if (pr) s += ' The nearest park and ride is ' + pr.name + ', ' + miles(pr.d) + ' away.';
+  return s;
+}
+function zhParkingSentence(t, D) {
+  const P = t.parking, U = unitOf(D), near = P.list[0], pr = P.pr && P.pr[0];
+  let s = '根據 OpenStreetMap，' + t.name + ' ' + U.zhC + ' 1 英里內有 ' + P.count1mi + ' 個公眾停車場';
+  s += P.spaces1mi ? '，已知車位最少 ' + num(P.spaces1mi) + ' 個（只計有填寫車位數的停車場）。' : '。';
+  if (P.multi1mi) s += '其中 ' + P.multi1mi + ' 個是多層或地下停車場。';
+  if (near) s += '最近而有名稱的是 ' + near.name + '，距離約 ' + zhMiles(near.d) + '。';
+  if (pr) s += '最近的 Park & Ride 轉乘停車場是 ' + pr.name + '，距離 ' + zhMiles(pr.d) + '。';
+  return s;
+}
+function parkBadges(p, zh) {
+  const b = [];
+  if (p.kind) b.push(zh ? (p.kind === 'multi' ? '多層' : '地下') : (p.kind === 'multi' ? 'multi-storey' : 'underground'));
+  if (p.cap) b.push(zh ? p.cap + ' 個車位' : num(p.cap) + ' spaces');
+  if (p.dis) b.push(zh ? p.dis + ' 個傷殘車位' : p.dis + ' disabled');
+  if (p.maxstay) b.push(zh ? '最長 ' + p.maxstay : 'max stay ' + p.maxstay);
+  if (p.fee) b.push(zh ? (p.fee === 'yes' ? '收費' : '免費') : (p.fee === 'yes' ? 'paid' : 'free'));
+  return b.length ? ' <span class="mut">(' + esc(b.join(' · ')) + ')</span>' : '';
+}
+function parkTable(list, zh) {
+  if (!list.length) return zh ? '<p>OpenStreetMap 未有附近停車場的名稱。</p>' : '<p>No named car parks are mapped near the centre.</p>';
+  return `<table><tr><th>${zh ? '停車場' : 'Car park'}</th><th class="n">${zh ? '距離' : 'Distance'}</th></tr>${list.map(p => `<tr><td>${esc(p.name)}${parkBadges(p, zh)}</td><td class="n">${zh ? zhMiles(p.d) + ' · ' + zhWalk(p.d) : miles(p.d) + ' · ' + walk(p.d)}</td></tr>`).join('')}</table>`;
+}
+function prTable(list, zh) {
+  return `<table><tr><th>Park &amp; Ride</th><th class="n">${zh ? '距離' : 'Distance'}</th></tr>${list.map(p => `<tr><td>${esc(p.name)}${p.cap ? ' <span class="mut">(' + (zh ? p.cap + ' 個車位' : num(p.cap) + ' spaces') + ')</span>' : ''}</td><td class="n">${zh ? zhMiles(p.d) : miles(p.d)}</td></tr>`).join('')}</table>`;
+}
+function nearbyParkingTable(t, D, zh) {
+  const rows = t.nearby.map((o, i) => hasParking(o) ? `<tr><td><a href="${zh ? zhPath(townPath(o)) : townPath(o)}/parking">${esc(o.name)}</a></td><td class="n">${zh ? zhMiles(t.nearbyDist[i]) : miles(t.nearbyDist[i])}</td><td class="n">${o.parking.count1mi}</td><td class="n">${o.parking.spaces1mi ? num(o.parking.spaces1mi) : '–'}</td></tr>` : '').join('');
+  if (!rows) return '';
+  const U = unitOf(D);
+  return zh ? `<h2>附近${U.zh}的停車場</h2><table><tr><th>${U.zh}</th><th class="n">距離</th><th class="n">1 英里內停車場</th><th class="n">已知車位</th></tr>
+<tr><td><b>${esc(t.name)}</b>（本頁）</td><td class="n">–</td><td class="n">${t.parking.count1mi}</td><td class="n">${t.parking.spaces1mi ? num(t.parking.spaces1mi) : '–'}</td></tr>${rows}</table>`
+    : `<h2>Car parks in nearby ${U.pl}</h2><table><tr><th>${U.Sg}</th><th class="n">Distance</th><th class="n">Car parks within 1 mi</th><th class="n">Known spaces</th></tr>
+<tr><td><b>${esc(t.name)}</b> (this page)</td><td class="n">–</td><td class="n">${t.parking.count1mi}</td><td class="n">${t.parking.spaces1mi ? num(t.parking.spaces1mi) : '–'}</td></tr>${rows}</table>`;
+}
+function parkingPage(t, D) {
+  const P = t.parking, U = unitOf(D), sent = parkingSentence(t, D);
+  const faq = [
+    ['Where can I park in ' + t.name + '?', sent],
+    ['Is parking free in ' + t.name + '?', 'Most town-centre car parks in the UK charge, and prices and free periods change. ' + (P.list.some(p => p.fee === 'no') ? 'OpenStreetMap marks ' + P.list.filter(p => p.fee === 'no').map(p => p.name).slice(0, 3).join(', ') + ' as free, but check the signs. ' : '') + 'Check the signs on arrival, the council website, or the RingGo or JustPark app.'],
+  ];
+  if (P.pr && P.pr.length) faq.push(['Is there a park and ride in ' + t.name + '?', 'Yes. The nearest mapped park and ride ' + (P.pr.length === 1 ? 'site is ' : 'sites are ') + P.pr.map(p => p.name + ' (' + miles(p.d) + ')').join(', ') + '.']);
+  const body = `<p>${esc(sent)}</p>
+<div class="card"><table><tr><th>Measure</th><th class="n">${esc(t.name)}</th></tr>
+<tr><td>Public car parks within 1 mile</td><td class="n">${P.count1mi}</td></tr>
+<tr><td>Known spaces within 1 mile</td><td class="n">${P.spaces1mi ? num(P.spaces1mi) : '–'}</td></tr>
+<tr><td>Multi-storey or underground</td><td class="n">${P.multi1mi}</td></tr></table></div>
+<h2>Nearest named car parks</h2>${parkTable(P.list, false)}
+${P.pr && P.pr.length ? '<h2>Park and ride</h2>' + prTable(P.pr, false) : ''}
+<h2>How to read this</h2><p>Car parks come from OpenStreetMap volunteers. Customer-only, permit-only and residents’ car parks and on-street bays are left out. Distances are in a straight line from ${U.centre}. Prices, opening hours and maximum stays change and are often not mapped, so check the signs, the council website or the RingGo / JustPark app before you park.</p>
+${nearbyParkingTable(t, D, false)}
+<h2>Frequently asked questions</h2>${faq.map(f => `<h3>${esc(f[0])}</h3><p>${esc(f[1])}</p>`).join('')}
+${cta(t, D)}<p><a href="${townPath(t)}">← ${esc(t.name)} overview</a> · <a href="${townPath(t)}/crime">Crime in ${esc(t.name)}</a> · <a href="${townPath(t)}/schools">Schools near ${esc(t.name)}</a></p><p class="mut">Car park data from OpenStreetMap, built ${esc(D.built)}. Updated monthly.</p>`;
+  const ld = [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f[0], acceptedAnswer: { '@type': 'Answer', text: f[1] } })) }];
+  return layout({ D,
+    title: 'Car parks in ' + t.name + ', ' + D.countyName + ': ' + P.count1mi + ' near the centre | Nest UK',
+    desc: P.count1mi + ' public car parks within 1 mile of ' + t.name + (P.spaces1mi ? ' (at least ' + num(P.spaces1mi) + ' spaces)' : '') + (P.list[0] ? '. Nearest: ' + P.list[0].name : '') + (P.pr && P.pr[0] ? '. Park and ride: ' + P.pr[0].name : '') + '. Distances, sizes and multi-storey car parks.',
+    path: townPath(t) + '/parking', h1: 'Car parks in ' + t.name + ', ' + D.countyName, body, ld, noindex: !t.indexable,
+    crumbs: [['Home', '/'], [D.countyName, '/uk/' + t.county], [t.name, townPath(t)], ['Parking', townPath(t) + '/parking']],
+  });
+}
+
 function rankingTable(D) {
   return `<table><tr><th class="n">#</th><th>${unitOf(D).Sg}</th><th class="n">Crimes (12 mo)</th><th class="n">Per month</th><th>Details</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td><td><a href="${townPath(t)}/crime">Crime</a> · <a href="${townPath(t)}/schools">Schools</a></td></tr>`).join('')}</table>`;
 }
@@ -340,7 +417,7 @@ function countyPage(D) {
   const U = unitOf(D);
   const body = `<p>We compare ${D.count} ${esc(D.countyName)} ${U.pl} by recorded crime within ${D.radiusM} m of ${U.centre} over the 12 months to ${esc(monthName(D.latest))}, and show the school picture for each. The median ${U.sg} recorded ${num(D.median)} crimes.</p>
 <p><a href="${bestPath(D)}">See the full ranking: safest ${U.pl} in ${esc(D.countyName)} →</a></p>
-<h2>All ${esc(D.countyName)} ${U.pl}</h2><table><tr><th>${U.Sg}</th><th>Details</th></tr>${D.ranked.map(t => `<tr><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td><a href="${townPath(t)}/crime">Crime</a> · <a href="${townPath(t)}/schools">Schools</a></td></tr>`).join('')}</table>${stamp(D)}`;
+<h2>All ${esc(D.countyName)} ${U.pl}</h2><table><tr><th>${U.Sg}</th><th>Details</th></tr>${D.ranked.map(t => `<tr><td><a href="${townPath(t)}">${esc(t.name)}</a></td><td><a href="${townPath(t)}/crime">Crime</a> · <a href="${townPath(t)}/schools">Schools</a>${parkLink(t)}</td></tr>`).join('')}</table>${stamp(D)}`;
   return layout({ D,
     title: D.countyName + ' ' + U.pl + ' compared: crime and schools | Nest UK',
     desc: 'Compare ' + D.count + ' ' + D.countyName + ' ' + U.pl + ' by recorded crime and nearby state schools, using Police.uk and DfE data. Updated monthly.',
@@ -460,6 +537,7 @@ function zhTownPage(t, D) {
     [t.name + ' 附近有好學校嗎？', zhSchoolSentence(t, D) + '本頁不評級學校，決定前請查看 Ofsted 報告及學校自己的資料。'],
   ];
   if (hasIndep(s)) faq.push([t.name + ' 附近有私立學校嗎？', zhIndepSentence(t, D, true) + '教育部登記冊沒有學費及收生年齡資料，請到各校網站查詢。']);
+  if (hasParking(t)) faq.push([t.name + ' 有甚麼地方可以泊車？', zhParkingSentence(t, D)]);
   const nearby = t.nearby.length ? `<h2>附近${U.zh}</h2><ul>${t.nearby.map(o => `<li><a href="${zhPath(townPath(o))}">${esc(o.name)}</a>：在 ${D.count} 個${U.zh}中罪案宗數由低至高排第 ${o.rank} 位</li>`).join('')}</ul>` : '';
   const body = `<p>${esc(zhCrimeSentence(t, D))}</p>
 <div class="card"><table><tr><th>項目</th><th class="n">${esc(t.name)}</th></tr>
@@ -469,9 +547,10 @@ ${t.indexable ? `<tr><td>排名（1 = ${D.count} 個 ${esc(D.countyName)} ${U.zh
 <tr><td>1 英里內公立小學</td><td class="n">${s.primary1mi} 間</td></tr>
 <tr><td>3 英里內公立中學</td><td class="n">${s.secondary3mi} 間</td></tr>
 <tr><td>2 英里內私立（independent）學校</td><td class="n">${s.independent2mi} 間</td></tr>
-${hasIndep(s) ? `<tr><td>5 英里內私立（independent）學校</td><td class="n">${s.independent5mi} 間</td></tr>` : ''}</table></div>
+${hasIndep(s) ? `<tr><td>5 英里內私立（independent）學校</td><td class="n">${s.independent5mi} 間</td></tr>` : ''}
+${hasParking(t) ? `<tr><td>1 英里內公眾停車場</td><td class="n">${t.parking.count1mi} 個</td></tr>` : ''}</table></div>
 ${zhCta(t, D)}
-<div class="links"><a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情 →</a><a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校 →</a></div>
+<div class="links"><a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情 →</a><a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校 →</a>${hasParking(t) ? `<a href="${zhPath(tp)}/parking">${esc(t.name)} 停車場 →</a>` : ''}</div>
 <h2>學校</h2><p>${esc(zhSchoolSentence(t, D))}</p>
 <h2>常見問題</h2>${faq.map(f => `<h3>${esc(f[0])}</h3><p>${esc(f[1])}</p>`).join('')}
 ${nearby}${zhStamp(D)}`;
@@ -523,6 +602,33 @@ ${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a hre
     crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)], ['學校', zhPath(tp) + '/schools']],
   });
 }
+function zhParkingPage(t, D) {
+  const P = t.parking, U = unitOf(D), cn = zhCounty(D), tp = townPath(t), sent = zhParkingSentence(t, D);
+  const free = P.list.filter(p => p.fee === 'no').map(p => p.name).slice(0, 3);
+  const faq = [
+    [t.name + ' 有甚麼地方可以泊車？', sent],
+    [t.name + ' 泊車免費嗎？', '英國市中心的停車場大多收費，收費及免費時段經常變動。' + (free.length ? 'OpenStreetMap 標示 ' + free.join('、') + ' 為免費，但仍請以現場告示為準。' : '') + '請查看現場告示、Council 網站，或 RingGo / JustPark App。'],
+  ];
+  if (P.pr && P.pr.length) faq.push([t.name + ' 有 Park & Ride 嗎？', '有。最近的 Park & Ride 轉乘停車場：' + P.pr.map(p => p.name + '（' + zhMiles(p.d) + '）').join('、') + '。']);
+  const body = `<p>${esc(sent)}</p>
+<div class="card"><table><tr><th>項目</th><th class="n">${esc(t.name)}</th></tr>
+<tr><td>1 英里內公眾停車場</td><td class="n">${P.count1mi} 個</td></tr>
+<tr><td>1 英里內已知車位</td><td class="n">${P.spaces1mi ? num(P.spaces1mi) + ' 個' : '–'}</td></tr>
+<tr><td>多層或地下停車場</td><td class="n">${P.multi1mi} 個</td></tr></table></div>
+<h2>最近而有名稱的停車場</h2>${parkTable(P.list, true)}
+${P.pr && P.pr.length ? '<h2>Park &amp; Ride 轉乘停車場</h2>' + prTable(P.pr, true) : ''}
+<h2>如何解讀</h2><p>停車場資料來自 OpenStreetMap 志願者，已剔除只限顧客、只限持證、住客專用的停車場及路邊咪錶位。距離是由${U.zhAround}起計的直線距離。收費、開放時間及最長停泊時間經常變動，亦未必有人填寫，泊車前請看現場告示、Council 網站或 RingGo / JustPark App。停車場名稱保留英文，方便導航及搜尋。</p>
+${nearbyParkingTable(t, D, true)}
+<h2>常見問題</h2>${faq.map(f => `<h3>${esc(f[0])}</h3><p>${esc(f[1])}</p>`).join('')}
+${zhCta(t, D)}<p><a href="${zhPath(tp)}">← ${esc(t.name)} 概覽</a> · <a href="${zhPath(tp)}/crime">${esc(t.name)} 罪案詳情</a> · <a href="${zhPath(tp)}/schools">${esc(t.name)} 附近學校</a></p><p class="mut">停車場資料來自 OpenStreetMap（${esc(D.built)} 更新），每月更新。</p>`;
+  const ld = [{ '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: 'zh-HK', mainEntity: faq.map(f => ({ '@type': 'Question', name: f[0], acceptedAnswer: { '@type': 'Answer', text: f[1] } })) }];
+  return layout({ D,
+    lang: 'zh', title: t.name + ' 停車場：市中心 1 英里內 ' + P.count1mi + ' 個公眾停車場｜Nest UK',
+    desc: t.name + '（' + zhCountyIn(D) + '）' + U.zhC + ' 1 英里內有 ' + P.count1mi + ' 個公眾停車場' + (P.spaces1mi ? '，已知車位最少 ' + num(P.spaces1mi) + ' 個' : '') + (P.list[0] ? '。最近：' + P.list[0].name : '') + (P.pr && P.pr[0] ? '。Park & Ride：' + P.pr[0].name : '') + '。附距離、車位數及多層停車場資料。',
+    path: zhPath(tp) + '/parking', h1: t.name + ' 停車場及泊車資料', body, ld, noindex: !t.indexable,
+    crumbs: [zhCrumbHome, [cn, zhPath('/uk/' + t.county)], [t.name, zhPath(tp)], ['停車場', zhPath(tp) + '/parking']],
+  });
+}
 function zhRankingTable(D) {
   return `<table><tr><th class="n">#</th><th>${unitOf(D).zh}</th><th class="n">12 個月罪案宗數</th><th class="n">每月</th><th>詳情</th></tr>${D.ranked.map(t => `<tr><td class="n">${t.rank}</td><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td class="n">${num(t.crime.total)}</td><td class="n">${num(t.crime.perMonth)}</td><td><a href="${zhPath(townPath(t))}/crime">罪案</a> · <a href="${zhPath(townPath(t))}/schools">學校</a></td></tr>`).join('')}</table>`;
 }
@@ -530,7 +636,7 @@ function zhCountyPage(D) {
   const cn = zhCounty(D), U = unitOf(D);
   const body = `<p>我們比較 ${D.count} 個 ${esc(D.countyName)} ${U.zh}，以截至 ${esc(zhMonth(D.latest))} 的 12 個月內、${U.zhC} ${D.radiusM} 米範圍的警方記錄罪案宗數作比較，並列出每個${U.zh}附近的學校情況。${U.zh}中位數為 ${num(D.median)} 宗。適合計劃移居英國（包括 BNO 簽證持有人）、正在比較 ${esc(D.countyName)} 不同${U.zh}的家庭參考。</p>
 <p><a href="${zhPath(bestPath(D))}">查看完整排名：${esc(D.countyName)} 最安全${U.zh} →</a></p>
-<h2>${esc(D.countyName)} 所有${U.zh}</h2><table><tr><th>${U.zh}</th><th>詳情</th></tr>${D.ranked.map(t => `<tr><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td><a href="${zhPath(townPath(t))}/crime">罪案</a> · <a href="${zhPath(townPath(t))}/schools">學校</a></td></tr>`).join('')}</table>${zhStamp(D)}`;
+<h2>${esc(D.countyName)} 所有${U.zh}</h2><table><tr><th>${U.zh}</th><th>詳情</th></tr>${D.ranked.map(t => `<tr><td><a href="${zhPath(townPath(t))}">${esc(t.name)}</a></td><td><a href="${zhPath(townPath(t))}/crime">罪案</a> · <a href="${zhPath(townPath(t))}/schools">學校</a>${zhParkLink(t)}</td></tr>`).join('')}</table>${zhStamp(D)}`;
   return layout({ D,
     lang: 'zh', title: cn + U.zh + '比較：治安及學校｜Nest UK',
     desc: '比較 ' + D.count + ' 個 ' + D.countyName + ' ' + U.zh + '的警方記錄罪案及附近公立學校，資料來自 Police.uk 及英國教育部，每月更新。',
@@ -553,10 +659,11 @@ function routeZh(p, D) {
   const q = p.slice(3) || '/';
   if (q === '/uk/' + D.county) return zhCountyPage(D);
   if (q === bestPath(D)) return zhRankingPage(D);
-  const m = q.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools))?$'));
+  const m = q.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools|parking))?$'));
   if (!m) return null;
   const t = D.bySlug.get(m[1]);
   if (!t || !t.crime) return null;
+  if (m[2] === 'parking') return hasParking(t) ? zhParkingPage(t, D) : null;
   return m[2] === 'crime' ? zhCrimePage(t, D) : m[2] === 'schools' ? zhSchoolsPage(t, D) : zhTownPage(t, D);
 }
 
@@ -565,7 +672,7 @@ export function sitemapXml(arg) {
   const urls = ['/uk'];
   list.forEach(D => {
     urls.push('/uk/' + D.county, bestPath(D));
-    D.ranked.forEach(t => { urls.push(townPath(t), townPath(t) + '/crime', townPath(t) + '/schools'); });
+    D.ranked.forEach(t => { urls.push(townPath(t), townPath(t) + '/crime', townPath(t) + '/schools'); if (hasParking(t)) urls.push(townPath(t) + '/parking'); });
   });
   const lm = list.map(D => D.built || '').sort().pop() || new Date().toISOString().slice(0, 10);
   const alt = u => '<xhtml:link rel="alternate" hreflang="en-GB" href="' + SITE + u + '"/><xhtml:link rel="alternate" hreflang="zh-HK" href="' + SITE + '/zh' + u + '"/><xhtml:link rel="alternate" hreflang="x-default" href="' + SITE + u + '"/>';
@@ -616,10 +723,11 @@ export function route(pathname, D) {
   if (p.startsWith('/zh/')) return routeZh(p, D);
   if (p === '/uk/' + D.county) return countyPage(D);
   if (p === bestPath(D)) return rankingPage(D);
-  const m = p.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools))?$'));
+  const m = p.match(new RegExp('^/uk/' + D.county + '/([a-z0-9-]+)(?:/(crime|schools|parking))?$'));
   if (!m) return null;
   const t = D.bySlug.get(m[1]);
   if (!t || !t.crime) return null;
+  if (m[2] === 'parking') return hasParking(t) ? parkingPage(t, D) : null;
   return m[2] === 'crime' ? crimePage(t, D) : m[2] === 'schools' ? schoolsPage(t, D) : townPage(t, D);
 }
 

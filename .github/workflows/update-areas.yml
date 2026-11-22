@@ -1,6 +1,6 @@
 name: Update area pages data
 
-# Rebuilds public/data/areas/ (crime and school numbers for the /uk/... pages, one file per region in scripts/areas/) once a
+# Rebuilds public/data/areas/ (crime, school and car park numbers for the /uk/... pages, one file per region in scripts/areas/) once a
 # month, after police.uk publishes the latest month, and on demand from the Actions tab (optionally for one region).
 # Cloudflare redeploys when the files are committed.
 on:

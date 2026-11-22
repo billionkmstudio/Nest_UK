@@ -2,7 +2,7 @@
 globalThis.__FAST = true;
 import worker from '../src/worker.js';
 import { resetMemo, prepare, route, sitemapXml, countyFromPath } from '../src/seo.js';
-import { buildAreas, summariseCrime, summariseSchools, monthList, slugify } from './build-areas.mjs';
+import { buildAreas, summariseCrime, summariseSchools, summariseParking, monthList, slugify } from './build-areas.mjs';
 
 let fails = 0; const check = (n, ok, x) => { if (!ok) fails++; console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' -> ' + JSON.stringify(x))); };
 
@@ -203,5 +203,22 @@ check('zh town page: private schools FAQ and 5 mile row', x.t.includes('附近�
 check('old data without the list keeps the old sentence, no broken section', route('/uk/surrey/big-town/schools', small).includes('within 2 miles; these are not counted above') && !route('/uk/surrey/big-town/schools', small).includes('Independent (private)') && route('/zh/uk/surrey/big-town/schools', small).includes('不計入上面的數字') && !route('/uk/surrey/big-town', small).includes('private schools near'));
 const none = prepare({ towns: [{ slug: 'big-town', name: 'Big Town', county: 'surrey', lat: 51.1, lng: -0.5, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: 60 })), total: 720, perMonth: 60, cats: { burglary: 720 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, independent5mi: 0, nearestPrimary: [], nearestSecondary: [], nearestIndependent: [] } }], county: 'surrey', countyName: 'Surrey', latest: '2026-08', built: '2026-10-23', radiusM: 600 });
 check('no private schools within 5 miles: says so, no empty table', route('/uk/surrey/big-town/schools', none).includes('lists no independent (fee-paying) schools within 5 miles') && !route('/uk/surrey/big-town/schools', none).includes('<th>School</th><th class="n">Distance</th></tr></table>'));
+
+/* ---- car parks ---- */
+const pk = summariseParking([
+  { type: 'way', id: 1, center: { lat: 51.2370, lon: -0.5710 }, tags: { amenity: 'parking', name: 'York Road', parking: 'multi-storey', capacity: '605', fee: 'yes' } },
+  { type: 'way', id: 1, center: { lat: 51.2370, lon: -0.5710 }, tags: { amenity: 'parking', name: 'York Road' } },
+  { type: 'way', id: 2, center: { lat: 51.2350, lon: -0.5690 }, tags: { amenity: 'parking', fee: 'no' } },
+  { type: 'way', id: 3, center: { lat: 51.2380, lon: -0.5650 }, tags: { amenity: 'parking', access: 'customers', name: 'Shop' } },
+  { type: 'way', id: 4, center: { lat: 51.2600, lon: -0.5900 }, tags: { amenity: 'parking', name: 'Spectrum P&R', park_ride: 'bus', capacity: '500' } },
+  { type: 'way', id: 5, center: { lat: 51.3000, lon: -0.5700 }, tags: { amenity: 'parking', name: 'Far Away' } },
+], 51.2362, -0.5704);
+check('parking: counts public within 1 mile, dedupes, skips customer-only, P&R apart', pk.count1mi === 2 && pk.spaces1mi === 605 && pk.multi1mi === 1 && pk.list.length === 1 && pk.list[0].name === 'York Road' && pk.pr[0].name === 'Spectrum P&R' && pk.pr[0].cap === 500, pk);
+const withPk = prepare({ towns: [{ slug: 'big-town', name: 'Big Town', county: 'surrey', lat: 51.1, lng: -0.5, parking: pk, crime: { months: Array.from({ length: 12 }, (_, k) => ({ m: '2025-' + String(k + 1).padStart(2, '0'), n: 60 })), total: 720, perMonth: 60, cats: { burglary: 720 } }, schools: { primary1mi: 1, secondary3mi: 1, independent2mi: 0, independent5mi: 0, nearestPrimary: [], nearestSecondary: [], nearestIndependent: [] } }], county: 'surrey', countyName: 'Surrey', latest: '2026-08', built: '2026-10-23', radiusM: 600 });
+const pe = route('/uk/surrey/big-town/parking', withPk), pz = route('/zh/uk/surrey/big-town/parking', withPk);
+check('parking page: EN and ZH render with list, P&R and FAQ', pe && pe.includes('Car parks in Big Town, Surrey') && pe.includes('York Road') && pe.includes('multi-storey') && pe.includes('Spectrum P&amp;R') && pe.includes('FAQPage') && pz && pz.includes('Big Town 停車場') && pz.includes('多層'));
+check('town page links to parking and has the FAQ', route('/uk/surrey/big-town', withPk).includes('/uk/surrey/big-town/parking') && route('/zh/uk/surrey/big-town', withPk).includes('/zh/uk/surrey/big-town/parking') && route('/uk/surrey/big-town', withPk).includes('Where can I park in Big Town?'));
+check('sitemap lists parking only where there is data', sitemapXml(withPk).includes('/uk/surrey/big-town/parking') && !sitemapXml(none).includes('/parking'));
+check('no parking data: no parking page, no link', route('/uk/surrey/big-town/parking', none) === null && !route('/uk/surrey/big-town', none).includes('/parking'));
 
 console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);
