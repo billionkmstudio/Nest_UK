@@ -121,7 +121,7 @@ async function fetchParking(fetchFn, lat, lng) {
   const body = 'data=' + encodeURIComponent(Q.park(lat, lng));
   for (let i = 0; i < 4; i++) {
     try {
-      const r = await fetchFn(OVERPASS[i % OVERPASS.length], { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA } });
+      const r = await fetchFn(OVERPASS[i % OVERPASS.length], { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': UA }, signal: AbortSignal.timeout(45000) });
       if (r.ok) {
         const j = await r.json();
         if (Array.isArray(j.elements) && !(j.remark && /timed out|out of memory/i.test(j.remark))) return summariseParking(j.elements, lat, lng);
