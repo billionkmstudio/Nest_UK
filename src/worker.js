@@ -8,7 +8,7 @@
 //   /uk, /uk/..., /best/..., /sitemap.xml  SEO pages from public/data/areas/<region>.json (src/seo.js)
 //   /api/weather  3-day forecast (MET Norway), edge-cached
 //   /api/e  anonymous usage counts (Workers Analytics Engine, binding EVENTS), see src/events.js
-//   /api/overpass?kind=edu|extra|life|roads|bus|cars  OpenStreetMap places, edge-cached
+//   /api/overpass?kind=edu|extra|life|roads|bus|cars|park  OpenStreetMap places, edge-cached
 // Same origin as the page, so no CORS handling is needed.
 
 import Q from '../public/queries.js';
